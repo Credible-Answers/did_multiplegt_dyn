@@ -9,7 +9,7 @@
 ** Subsections may contain unnumbered subsubsections, tagged with "//".
 ** Subsubsections may be further divided into paragraphs, tagged with "*".
 ** Comments are also tagged with "*".
-** This version : December 31st, 2025
+** This version : January 17th, 2026
 
 ** This version includes Diego's changes:
 **** Fixes to variance estimation with controls() (tks)
@@ -2510,8 +2510,21 @@ if (l_placebo_XX!=0)&l_placebo_XX>1{
 	matrix didmgt_Var_Placebo_inv=invsym(didmgt_Var_Placebo)
 	matrix didmgt_Placebo_t=didmgt_Placebo'
 	matrix didmgt_chi2placebo=didmgt_Placebo_t*didmgt_Var_Placebo_inv*didmgt_Placebo
-	scalar p_jointplacebo=1-chi2(l_placebo_XX,didmgt_chi2placebo[1,1])
-	ereturn scalar p_jointplacebo=1-chi2(l_placebo_XX,didmgt_chi2placebo[1,1])
+	
+	
+	
+	*Modif David 05_02_2026: check that matrix has full rank before performing the test:
+	* Check rank of didmgt_Var_Placebo
+	matrix symeigen X_pl v_pl = didmgt_Var_Placebo
+	scalar warning_pl= abs(v_pl[1,1]/v_pl[rowsof(v_pl), colsof(v_pl)])
+	if (warning_pl != .) {
+		scalar p_jointplacebo=1-chi2(l_placebo_XX,didmgt_chi2placebo[1,1])
+		ereturn scalar p_jointplacebo=1-chi2(l_placebo_XX,didmgt_chi2placebo[1,1])
+		}
+	if (warning_pl == .){
+		scalar p_jointplacebo=.
+		ereturn scalar p_jointplacebo=.
+		}
 
 	}
 	
@@ -2610,8 +2623,20 @@ if l_XX>1{
 	matrix didmgt_Var_effects_inv=invsym(didmgt_Var_effects)
 	matrix didmgt_effects_t=didmgt_effects'
 	matrix didmgt_chi2effects=didmgt_effects_t*didmgt_Var_effects_inv*didmgt_effects
-	scalar p_jointeffects=1-chi2(l_XX,didmgt_chi2effects[1,1])
-	ereturn scalar p_jointeffects=1-chi2(l_XX,didmgt_chi2effects[1,1])
+	
+	
+	*Modif David 05_02_2026: check that matrix has full rank before performing the test:
+	* Check rank of didmgt_Var_effects
+	matrix symeigen X_eff v_eff = didmgt_Var_effects
+	scalar warning_eff= abs(v_eff[1,1]/v_eff[rowsof(v_eff), colsof(v_eff)])
+	if (warning_eff != .) {
+		scalar p_jointeffects=1-chi2(l_XX,didmgt_chi2effects[1,1])
+		ereturn scalar p_jointeffects=1-chi2(l_XX,didmgt_chi2effects[1,1])
+		}
+	if (warning_eff == .){
+		scalar p_jointeffects=.
+		ereturn scalar p_jointeffects=.
+		}
 
 	}
 	
@@ -2786,10 +2811,19 @@ if `ee_called' == 1 & l_XX>1 {
 			
 			* chi-squared statistics : effectstranspose * (Variance)^(-1)* effects
 			matrix didmgt_chi2_equal_ef = didmgt_test_effects_t * didmgt_test_var_inv * didmgt_test_effects
-			* Calculate p-value: comparing the chi-square statistic (didmgt_chi2_equal_ef[1,1]) with the chi-square distribution 
+			
+			
+	*Modif David 05_02_2026: check that matrix has full rank before performing the test:
+	* Check rank of didmgt_Var_effects, since they are the estimators used for the equality of effects test
+	if (warning_eff != .) {
 			scalar p_equality_effects = 1 - chi2(`=`length'-1', didmgt_chi2_equal_ef[1, 1])  
 			ereturn scalar p_equality_effects = 1 - chi2(`=`length'-1', didmgt_chi2_equal_ef[1, 1])	
-			
+		}
+	if (warning_eff == .){
+		scalar p_equality_effects=.
+		ereturn scalar p_equality_effects=.
+		}	
+		
 		}
 		else{
 		di as error ""
@@ -2830,7 +2864,19 @@ noisily matlist mat_res_XX[1..l_XX, 1..6]
 di "{hline 80}"
 // Felix: Add test on effects jointly = 0
 if (l_XX>1&all_Ns_not_zero==l_XX&all_delta_not_zero==l_XX&"`normalized'"!="")|(l_XX>1&all_Ns_not_zero==l_XX&"`normalized'"==""){
-di as text "{it:Test of joint nullity of the effects : p-value =} " scalar(p_jointeffects)
+	
+	if (warning_eff <= 1000) {
+		di as text "{it:Test of joint nullity of the effects : p-value =} " scalar(p_jointeffects)
+	}
+	if (warning_eff == .) {
+		noi di as err "The F-test that all effects are equal to zero is not computed because the variance of effects is not invertible. This can for instance happen if you cluster standard errors and you have more pre-trend estimators than clusters."
+	}
+	if (warning_eff != . & warning_eff >= 1000){
+		noi di as err "The F-test that all effects are equal to zero may not be reliable, because the variance of the effects is close to not being invertible (the ratio of its largest and smallest eigenvalues is larger than 1000). This can for instance happen when you compute many effects estimators, or when your effects are very strongly correlated. We recommend that you complement the F-test with a sup t-test, see FAQ section of the help file for more details."
+		di as text ""
+		di as text "{it:Test of joint nullity of the effects : p-value =} " scalar(p_jointeffects)
+	}
+
 }
 
 if `ee_called' == 1 & l_XX>1 {
@@ -2838,10 +2884,33 @@ if `ee_called' == 1 & l_XX>1 {
 if l_XX>1&"`effects_equal'"!=""&all_Ns_not_zero_equal_test== `length'{ 
 * When effects_equal is specified show P-value here	
 if `length' == l_XX{
-	di as text "{it:Test of equality of the effects : p-value =} " scalar(p_equality_effects)
+	if (warning_eff <= 1000) {
+		di as text "{it:Test of equality of the effects : p-value =} " scalar(p_equality_effects)
+	}
+	if (warning_eff == .) {
+		noi di as err "The F-test that all effects are equal is not computed because the variance of effects is not invertible. This can for instance happen if you cluster standard errors and you have more pre-trend estimators than clusters."
+	}
+	if (warning_eff != . & warning_eff >= 1000){
+		noi di as err "The F-test that all effects are equal may not be reliable, because the variance of the effects is close to not being invertible (the ratio of its largest and smallest eigenvalues is larger than 1000). This can for instance happen when you compute many effects estimators, or when your effects are very strongly correlated. We recommend that you complement the F-test with a sup t-test, see FAQ section of the help file for more details."
+		di as text ""
+		di as text "{it:Test of equality of the effects : p-value =} " scalar(p_equality_effects)
+	}
+	
+	
 }
 else{
+	if (warning_eff <= 1000) {
 		di as text "{it:Test of equality of the effects of having been exposed to treatment for `ee_lb' to `ee_ub' periods: p-value =} " scalar(p_equality_effects) 
+	}
+	if (warning_eff == .) {
+		noi di as err "The F-test that effects `ee_lb' to `ee_ub' are equal is not computed because the variance of effects is not invertible. This can for instance happen if you cluster standard errors and you have more pre-trend estimators than clusters."
+	}
+	if (warning_eff != . & warning_eff >= 1000){
+		noi di as err "The F-test that effects `ee_lb' to `ee_ub' are equal may not be reliable, because the variance of the effects is close to not being invertible (the ratio of its largest and smallest eigenvalues is larger than 1000). This can for instance happen when you compute many effects estimators, or when your effects are very strongly correlated. We recommend that you complement the F-test with a sup t-test, see FAQ section of the help file for more details."
+		di as text ""
+		di as text "{it:Test of equality of the effects of having been exposed to treatment for `ee_lb' to `ee_ub' periods: p-value =} " scalar(p_equality_effects) 
+	}
+	
 }
 }
 
@@ -2944,7 +3013,18 @@ di "{hline 80}"
 matlist mat_res_XX[l_XX+2...,1..6]
 di "{hline 80}"
 if (l_placebo_XX>1&all_Ns_pl_not_zero==l_placebo_XX&all_delta_pl_not_zero==l_placebo_XX&"`normalized'"!="")|(l_placebo_XX>1&all_Ns_pl_not_zero==l_placebo_XX&"`normalized'"==""){
-di as text "{it:Test of joint nullity of the placebos : p-value =} " scalar(p_jointplacebo)
+	if (warning_pl <= 1000) {
+		di as text "{it:Test of joint nullity of the placebos : p-value =} " scalar(p_jointplacebo)
+	}
+	if (warning_pl == .) {
+		noi di as err "The F-test that all pre-trends are equal to zero is not computed because the variance of pre-trends is not invertible. This can for instance happen if you cluster standard errors and you have more pre-trend estimators than clusters."
+	}
+	if (warning_pl != . & warning_pl >= 1000){
+		noi di as err "The F-test that all pre-trends are equal to zero may not be reliable, because the variance of the placebos is close to not being invertible (the ratio of its largest and smallest eigenvalues is larger than 1000). This can for instance happen when you compute many placebos estimators, or when your placebos are very strongly correlated. We recommend that you complement the F-test with a sup t-test, see FAQ section of the help file for more details."
+		di as text ""
+		di as text "{it:Test of joint nullity of the placebos : p-value =} " scalar(p_jointplacebo)
+	}
+
 }
 }
 
