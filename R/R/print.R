@@ -34,12 +34,20 @@ print.did_multiplegt_dyn <- function(x, ...) {
         mat_print(ref$results$Effects[, 1:(6 + ((!is.null(x$args$weight))*2))])
         cat("\n")
         if (!is.null(ref$results$p_jointeffects)) {
-            cat(sprintf("Test of joint nullity of the effects : p-value = %.4f", ref$results$p_jointeffects))
+            if (is.na(ref$results$p_jointeffects)) {
+                cat("Test of joint nullity of the effects : p-value = not computed (see warnings)")
+            } else {
+                cat(sprintf("Test of joint nullity of the effects : p-value = %.4f", ref$results$p_jointeffects))
+            }
             cat("\n")
         }
 
         if (!is.null(ref$results$p_equality_effects)) {
-            cat(sprintf("Test of equality of the effects : p-value = %.4f", ref$results$p_equality_effects))
+            if (is.na(ref$results$p_equality_effects)) {
+                cat("Test of equality of the effects : p-value = not computed (see warnings)")
+            } else {
+                cat(sprintf("Test of equality of the effects : p-value = %.4f", ref$results$p_equality_effects))
+            }
             cat("\n");cat("\n")
         }
 
@@ -65,7 +73,11 @@ print.did_multiplegt_dyn <- function(x, ...) {
             mat_print(ref$results$Placebos[, 1:(6 + ((!is.null(x$args$weight))*2))])
             if (is.null(x$args$bootstrap)) {
                 cat("\n")
-                cat(sprintf("Test of joint nullity of the placebos : p-value = %.4f", ref$results$p_jointplacebo))
+                if (!is.null(ref$results$p_jointplacebo) && is.na(ref$results$p_jointplacebo)) {
+                    cat("Test of joint nullity of the placebos : p-value = not computed (see warnings)")
+                } else if (!is.null(ref$results$p_jointplacebo)) {
+                    cat(sprintf("Test of joint nullity of the placebos : p-value = %.4f", ref$results$p_jointplacebo))
+                }
                 cat("\n")
             }
             cat("\n")
@@ -167,6 +179,17 @@ print.did_multiplegt_dyn <- function(x, ...) {
                     mat_print(het_mat)
                     cat(sprintf("Test of joint nullity of the estimates : p-value = %.4f\n", pval));cat("\n")
                 }
+            }
+        }
+
+        # Display vcov warnings if any
+        if (!is.null(ref$results$vcov_warnings)) {
+            cat("\n")
+            cat(noquote(strrep("-", 70)));cat("\n");
+            cat(strrep(" ", 4));cat("Warnings");cat("\n");
+            cat(noquote(strrep("-", 70)));cat("\n");
+            for (w in ref$results$vcov_warnings) {
+                cat(paste0("- ", w));cat("\n")
             }
         }
     }

@@ -1,23 +1,28 @@
 Package: DIDmultiplegtDYN
 Title: Estimation in Difference-in-Difference Designs with Multiple Groups and Periods
-Version: 2.1.2
+Version: 2.3.1
 Authors@R: 
-    c(person("Diego", "Ciccia", role = c("aut", "cre"), email = "diego.ciccia@kellogg.northwestern.edu"),
+    c(person("Anzony", "Quispe", role = c("aut", "cre"), email = "anzony.quispe@gmail.com"), 
+	person("Diego", "Ciccia", role = "aut", email = "diego.ciccia@kellogg.northwestern.edu"),
 	person("Felix", "Knau", role = "aut", email = "felix.knau@sciencespo.fr"),
 	person("Mélitine", "Malezieux", role = "aut", email = "melitine.malezieux@sciencespo.fr"),	
 	person("Doulo", "Sow", role = "aut", email = "doulo.sow@ensae.fr"),
     person("Clément", "de Chaisemartin", role = "aut", email = "clement.dechaisemartin@sciencespo.fr"))
-Maintainer: Diego Ciccia <diego.ciccia@kellogg.northwestern.edu>
+Maintainer: Anzony Quispe <anzony.quispe@gmail.com>
 Description:  Estimation of heterogeneity-robust difference-in-differences estimators, with a binary, discrete, or continuous treatment, in designs where past treatments may affect the current outcome.
 License: MIT + file LICENSE
 LazyData: true
-URL: https://github.com/chaisemartinPackages/did_multiplegt_dyn 
-Author: Diego Ciccia [aut, cre],
+URL: https://github.com/Credible-Answers/did_multiplegt_dyn
+Author: Anzony Quispe [aut, cre],
+	Diego Ciccia [aut],
 	Felix Knau [aut],
 	Mélitine Malezieux [aut],
 	Doulo Sow [aut],
   	Clément de Chaisemartin [aut]
 Encoding: UTF-8
-Imports: data.table, dplyr, ggplot2, matlib, plm, openxlsx, stats, car, lmtest, sandwich, haven, cowplot, rnames
+Imports: data.table, MASS, fixest, dplyr, ggplot2, matlib, openxlsx, stats, car, lmtest, sandwich, haven, cowplot, rnames, Rcpp
+Suggests: polars
+LinkingTo: Rcpp
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
+Additional_repositories: https://rpolars.r-universe.dev

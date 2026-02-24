@@ -157,7 +157,7 @@ This command allows for many relaxations of the parallel-trends assumption: see 
 \section{Contacts}{
 
 
-Github repository: \href{https://github.com/chaisemartinPackages/did_multiplegt_dyn}{chaisemartinPackages/did_multiplegt_dyn}
+Github repository: \href{https://github.com/Credible-Answers/did_multiplegt_dyn}{chaisemartinPackages/did_multiplegt_dyn}
 
 Mail: \href{mailto:chaisemartin.packages@gmail.com}{chaisemartin.packages@gmail.com}
 }

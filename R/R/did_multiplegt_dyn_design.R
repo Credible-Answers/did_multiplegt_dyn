@@ -5,7 +5,7 @@
 #' @param by by
 #' @param by_index by_index
 #' @param file file
-#' @import data.table
+#' @note polars is suggested for better performance
 #' @returns A list with the design option output.
 #' @noRd
 did_multiplegt_dyn_design <- function(
@@ -19,6 +19,10 @@ did_multiplegt_dyn_design <- function(
 
     # Inherited Globals #
     df <- data$df
+    # Convert polars DataFrame to R data.frame for base R operations
+    if (inherits(df, "polars_data_frame")) {
+      df <- as.data.frame(df)
+    }
     l_XX <- data$l_XX
     T_max_XX <- data$T_max_XX
 
@@ -47,12 +51,15 @@ did_multiplegt_dyn_design <- function(
   df$sel_XX <- df$time_XX >= df$F_g_XX - 1 & df$time_XX <= df$F_g_plus_n_XX
   df <- subset(df, df$time_XX >= df$F_g_XX - 1 & df$time_XX <= df$F_g_plus_n_XX)
   df <- df[order(df$group_XX, df$time_XX), ]
-  df[, time_l_XX := seq_len(.N), by = group_XX]
-  df <-  subset(df, select = c("group_XX", "time_l_XX", "weight_XX", "treatment_XX", "F_g_XX"))
+  # Generate row number within group
+  df$time_l_XX <- ave(seq_len(nrow(df)), df$group_XX, FUN = seq_along)
+  df <- subset(df, select = c("group_XX", "time_l_XX", "weight_XX", "treatment_XX", "F_g_XX"))
 
-	## Aggregate weights by group 
+	## Aggregate weights by group
   if (!is.null(weight)) {
-    df[, g_weight_XX := sum(weight_XX, na.rm = TRUE), by = group_XX]
+    weight_sum <- aggregate(df$weight_XX, by = list(group_XX = df$group_XX), FUN = sum, na.rm = TRUE)
+    names(weight_sum)[2] <- "g_weight_XX"
+    df <- merge(df, weight_sum, by = "group_XX", all.x = TRUE)
   } else {
     df$g_weight_XX <- 1
   }
@@ -62,9 +69,13 @@ did_multiplegt_dyn_design <- function(
   treat_list <- c()
   treat_str <- ""
   for (i in 1:max_time) {
-    df[, paste0("treatment_XX",i) := mean(treatment_XX[time_l_XX == i]), by = group_XX]
-    treat_list <- c(treat_list, paste0("treatment_XX",i))
-    treat_str <- paste0(treat_str,"treatment_XX",i,",")
+    # Mean of treatment where time_l_XX == i, by group
+    df_sub <- df[df$time_l_XX == i, c("group_XX", "treatment_XX")]
+    treat_mean <- aggregate(df_sub$treatment_XX, by = list(group_XX = df_sub$group_XX), FUN = mean, na.rm = TRUE)
+    names(treat_mean)[2] <- paste0("treatment_XX", i)
+    df <- merge(df, treat_mean, by = "group_XX", all.x = TRUE)
+    treat_list <- c(treat_list, paste0("treatment_XX", i))
+    treat_str <- paste0(treat_str, "treatment_XX", i, ",")
   }
   treat_str <- substr(treat_str, 1, nchar(treat_str) - 1)
   df$time_l_XX <- df$treatment_XX <- NULL
@@ -75,27 +86,39 @@ did_multiplegt_dyn_design <- function(
     df <- subset(df, !is.na(df[[var]]))
   }
 
-	## Creating varibale to store number of groups per treatment path and collapsing
+	## Creating variable to store number of groups per treatment path and collapsing
   df$N_XX <- 1
   df$N_w_XX <- (df$g_weight_XX * df$N_XX) / sum(df$g_weight_XX, na.rm = TRUE)
   df$group_XX <- df$g_weight_XX <- NULL
-  df[, N_XX := sum(N_XX, na.rm = TRUE), by = treat_list]
-  df[, N_w_XX := sum(N_w_XX, na.rm = TRUE), by = treat_list]
+  # Sum by treat_list
+  N_sum <- aggregate(df$N_XX, by = df[treat_list], FUN = sum, na.rm = TRUE)
+  names(N_sum)[ncol(N_sum)] <- "N_XX_sum"
+  Nw_sum <- aggregate(df$N_w_XX, by = df[treat_list], FUN = sum, na.rm = TRUE)
+  names(Nw_sum)[ncol(Nw_sum)] <- "N_w_XX_sum"
+  df <- merge(df, N_sum, by = treat_list, all.x = TRUE)
+  df <- merge(df, Nw_sum, by = treat_list, all.x = TRUE)
+  df$N_XX <- df$N_XX_sum
+  df$N_w_XX <- df$N_w_XX_sum
+  df$N_XX_sum <- df$N_w_XX_sum <- NULL
   df$F_g_XX <- NULL
   df <- unique(df)
   tot_switch <- sum(df$N_XX, na.rm = TRUE)
 
-	## Keep the observations amounting to p% of the detected treatment paths 
+	## Keep the observations amounting to p% of the detected treatment paths
   df$neg_N_XX <- - df$N_XX
-  df[, treat_GRP := .GRP, by = c(treat_list)]
+  # Create group rank
+  df$treat_key <- do.call(paste, c(df[treat_list], sep = "_"))
+  df$treat_GRP <- as.numeric(factor(df$treat_key))
+  df$treat_key <- NULL
   df <- df[order(df$neg_N_XX, df$treat_GRP), ]
   df$neg_N_XX <- df$treat_GRP <- NULL
   df$cum_sum_XX <- cumsum(df$N_w_XX)
   df$in_table_XX <- as.numeric(df$cum_sum_XX <= des_p)
   df <- df[order(df$in_table_XX, df$cum_sum_XX), ]
-  df[, id_XX := seq_len(.N), by = in_table_XX]
+  # Generate row id within in_table_XX
+  df$id_XX <- ave(seq_len(nrow(df)), df$in_table_XX, FUN = seq_along)
 
-	## Keep all observations up to the first exceeding the p%	
+	## Keep all observations up to the first exceeding the p%
   df <- subset(df, df$in_table_XX == 1 | (df$in_table_XX == 0 & df$id_XX == 1))
 
 	## Store the final % of groups included by the design option
@@ -105,7 +128,9 @@ did_multiplegt_dyn_design <- function(
     last_p <- 100
   }
   df$neg_N_XX <- - df$N_XX
-  df[, treat_GRP := .GRP, by = c(treat_list)]
+  df$treat_key <- do.call(paste, c(df[treat_list], sep = "_"))
+  df$treat_GRP <- as.numeric(factor(df$treat_key))
+  df$treat_key <- NULL
   df <- df[order(df$neg_N_XX, df$treat_GRP), ]
   df <- subset(df, select = c("N_XX", "N_w_XX", treat_list))
   df$N_w_XX <- df$N_w_XX * 100
@@ -120,15 +145,15 @@ did_multiplegt_dyn_design <- function(
   for (j in 1:(2 + 1 + l_XX)) {
     for (i in 1:dim(df)[1]) {
       if (j == 1) {
-        rown <- c(rown, paste0("TreatPath",i))
+        rown <- c(rown, paste0("TreatPath", i))
       }
       desmat[i,j] <- as.numeric(df[i,j])
     }
     if (j > 2) {
-      coln <- c(coln, paste0("\U2113","=",j - 2 - 1))
+      coln <- c(coln, paste0("\U2113", "=", j - 2 - 1))
     }
   }
-  df <- data.table(df)
+  # Keep df as data.frame (no need to convert to data.table)
   colnames(desmat) <- coln
   rownames(desmat) <- rown 
   

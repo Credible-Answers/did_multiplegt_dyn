@@ -12,7 +12,7 @@
 #' @param design (2 args: float, char path) this option reports switchers' period-one and subsequent treatments, thus helping the analyst understand the treatment paths whose effect is aggregated in the non-normalized event-study effects. When the number of treatment paths is low, one may consider estimating treatment-path-specific event-study effects to facilitate interpretation, see footnote 10 of de Chaisemartin and D'Haultfoeuille (2024) for detailed instructions. When the number of treatment paths is large, one may specify a number included between 0 and 1 in the float argument. Then the command reports the treatment paths common to at least (_float_*100)% of switchers. Results can be printed in the Stata console specifying "console" as the string argument.  For example, \code{design = c(0.5, "console")} reports the treatment paths experienced by at least 50% of the switchers and prints the output in the Stata console. Alternatively, the output can be stored in an Excel file providing a valid file path as the string argument.
 #' @param normalized (logical) when this option is specified, the command estimates normalized event-study effects, that are equal to a weighted average of the effects of the current treatment and of its \eqn{\ell-1} first lags on the outcome. See Sections 3.1 and 3.2 of de Chaisemartin and D'Haultfoeuille (2020a) for further details.
 #' @param normalized_weights (logical, requires \code{normalized = TRUE}) the command reports the weights that normalized effect \eqn{\ell} puts on the effect of the current treatment, on the effect of the first treatment lag, etc.
-#' @param effects_equal (logical) when this option is specified and the user requests that at least two effects be estimated, the command performs an F-test that all effects are equal. When the normalized option is specified, this test can be useful to assess if the current and lagged treatments all have the same effect on the outcome or if their effects differ, see Lemma 3 of de Chaisemartin and D'Haultfoeuille (2020a).
+#' @param effects_equal (logical or char) when this option is specified and the user requests that at least two effects be estimated, the command performs an F-test that effects are equal. Can be TRUE (or "all") to test equality of all effects, or a string "lb, ub" to test equality of effects from lb to ub (e.g., "2, 5" tests if effects 2 to 5 are equal). When the normalized option is specified, this test can be useful to assess if the current and lagged treatments all have the same effect on the outcome or if their effects differ, see Lemma 3 of de Chaisemartin and D'Haultfoeuille (2020a).
 #' @param placebo (int) gives the number of placebo estimators to be computed. Placebos compare the outcome evolution of switchers and of their controls, before switchers' treatment changes for the first time. Under the parallel trends and no-anticipation assumptions underlying the event-study estimators computed by \code{did_multiplegt_dyn()}, the expectation of the placebos is equal to zero. Thus, placebos can be used to test those assumptions, by testing the null that all placebos are equal to zero. If the user requests that at least two placebos be estimated, the command computes the p-value of a joint test of that null hypothesis. The number of placebos requested can be at most equal to the number of time periods in the data minus 2, though most often only a smaller number of placebos can be computed. Also, the number of placebos requested cannot be larger than the number of effects requested.
 #' @param controls (atomic char or vector of char) gives the names of the control variables to be included in the estimation. Estimators with controls are similar to those without controls, except that the first-difference of the outcome is replaced by residuals from regressions of the first-difference of the outcome on the first-differences of the controls and time fixed effects. Those regressions are estimated in the sample of control \eqn{(g,t)}s: \eqn{(g,t)}s such that group \eqn{g}'s treatment has not changed yet at \eqn{t}. Those regressions are also estimated separately for each value of the baseline treatment. Estimators with controls are unbiased even if groups experience differential trends, provided such differential trends can be fully explained by a linear model in covariates changes. To control for time-invariant covariates, one needs to interact them with the time variable \eqn{T}, or with time fixed effects. See Section 1.2 of the Web Appendix of de Chaisemartin and D'Haultfoeuille (2020a) for further details.
 #' @param trends_lin (logical) when this option is specified, the estimation of the treatment effects allows for group-specific linear trends. Estimators with linear trends start by computing event-study effects on the outcome's first-difference, rather than on the outcome itself, thus allowing for group-specific linear trends. Then, to recover event-study effect \eqn{\ell} on the outcome, event-study effects on the outcome's first-difference are summed from 1 to \eqn{\ell}. See Section 1.3 of the Web Appendix of de Chaisemartin and D'Haultfoeuille (2024) for further details. When this option is specified, the estimated average total effect per unit of treatment is not computed.
@@ -23,6 +23,7 @@
 #' @param by (char) when this option is specified, the command estimates all the effects by the different levels of the specified variable. If the variable is a binary variable for example, then the estimation is carried out once for the sample of groups with var=0 and once for the sample of groups with var=1. Then, the command reports on a graph event-study plots for all values of the \code{by} argument, thus allowing to assess effect heterogeneity by the specified variable. 
 #' @param by_path (integer)  when this option is specified, the command estimates all the effects separately for the # most common treatment paths from \eqn{F_{g-1}} to \eqn{F_{g-1+\ell}}, where \eqn{\ell} is the argument inputted to the \code{effects} option. If you want to estimate effects separately for all treatment paths, you can input -1 as the option’s argument. This option can not be combined with the \code{by} option.
 #' @param predict_het (list with 2 args: char or vector of char, -1 or vector of positive integers)  when this option is specified, the command outputs tables showing whether the group-level and time-invariant variables in the char varlist predict groups' estimated event-study effects. With the second argument set to -1, with this option the command produces one table per event-study effect estimated, each displaying the coefficients from regressions of the group-level estimate of the event-study effect on the variables in the char varlist. This method to analyze heterogeneous treatment effects assumes that switchers' counterfactual outcome evolutions is uncorrelated with the variables in varlist. To placebo test this condition, the command also shows placebo regression tables, where switchers' outcome evolutions before their treatment changed is regressed on the covariates. The p-value of a test on the null hypothesis that all heterogeneity estimates are equal to zero is shown below each table. If you are only interested in predicting a subset of the event-study effects estimated, you can specify those inside an integer vector as the second argument. This option cannot be specified with \code{normalized = TRUE} and when the \code{controls} option is specified. See Section 1.5 of the Web Appendix of de Chaisemartin and D'Haultfoeuille (2024) for further details.
+#' @param predict_het_hc2bm (logical) when this option is specified together with \code{predict_het}, the command uses HC2 Bell-McCaffrey degrees of freedom adjusted standard errors for the predict_het regressions, which are more robust for small samples.
 #' @param date_first_switch (2 args: char in ("", "by_baseline_treat"), char path) the option reports the dates at which switchers experience their first treatment change, and how many groups experienced a first change at each date. The reference population are switchers for which the last event-study effect can be estimated. If "by_baseline_treat" is specified as the first argument, separate tables are displayed for each level of the period-one treatment. Results can be printed in the Stata console specifying "console" in the second argument. Alternatively, the output can be stored in an Excel file providing a valid file path in the second argument.
 #' @param same_switchers (logical) if this option is specified and the user requests that at least two effects be estimated, the command will restrict the estimation of the event-study effects to switchers for which all effects can be estimated, to avoid compositional changes.
 #' @param same_switchers_pl (logical, requires \code{same_switchers = TRUE}) the command restricts the estimation of event-study and placebo effects to switchers for which all event-study and placebos effects can be estimated. 
@@ -33,7 +34,8 @@
 #' @param save_results (char) if this option is specified, the command saves the estimators requested, their standard error, their 95% confidence interval, and the number of observations used in the estimation in a separate data set, at the location specified in the char argument.
 #' @param save_sample (logical) if this option is specified, the command generates a (numeric) variable _did_sample_, tagging all \eqn{(g,t)} cells used in the estimation. This variable may take on three non-missing values: "Control" for \eqn{(g,t)} cells used as controls, "Switcher-in" for (g,t) cells used as switchers-in, and "Switcher-out" for cells used as switchers-out. This variable is missing for all \eqn{(g,t)} cells not used in the estimation. For (g,t) cells used as switchers-in or switchers-out, the variable _did_effect_ also indicates the number of the event-study effect for which the cell is used in the estimation.
 #' @param less_conservative_se (logical) when groups' treatment can change multiple times, the standard errors reported by default by the command may be conservative. Then, less conservative standard errors can be obtained by specifying this option. See de Chaisemartin et al. (2024) for further details.
-#' @param bootstrap (integer) when this option is specified, bootstraped instead of analytical standard errors are reported. The number of bootstrap replications is the option's only argument. If the \code{cluster} option is also requested, the bootstrap is clustered at the level requested in the \code{cluster} option.
+#' @param more_granular_demeaning (logical) when this option is specified, the command uses more granular demeaning for variance estimation. This option automatically enables \code{less_conservative_se}.
+#' @param bootstrap (integer or list) when this option is specified, bootstrapped instead of analytical standard errors are reported. Can be specified as an integer (number of replications) or as a list with two elements: \code{list(reps, seed)} where reps is the number of replications and seed is the random seed for reproducibility. If the \code{cluster} option is also requested, the bootstrap is clustered at the level requested in the \code{cluster} option.
 #' @param dont_drop_larger_lower (logical) by default, the command drops all the \eqn{(g,t)} cells such that at \eqn{t}, group \eqn{g} has experienced both a strictly larger and a strictly lower treatment than its baseline treatment. de Chaisemartin and D'Haultfoeuille (2020a) recommend this procedure, if you are interested in more details you can see their Section 3.1. The option \code{dont_drop_larger_lower} allows to overwrite this procedure and keeps \eqn{(g,t)} cells such that at \eqn{t}, group \eqn{g} has experienced both a strictly larger and a strictly lower treatment than its baseline treatment in the estimation sample.
 #' @param drop_if_d_miss_before_first_switch (logical) This option is relevant when the treatment of some groups is missing at some time periods. Then, the command imputes some of those missing treatments. Those imputations are detailed in Appendix A of de Chaisemartin et al (2024). In designs where groups' treatments can change at most once, all those imputations are justified by the design. In other designs, some of those imputations may be liberal. \code{drop_if_d_miss_before_first_switch} can be used to overrule the potentially liberal imputations that are not innocuous for the non-normalized event-study estimators. See Appendix A of de Chaisemartin et al (2024) for further details.
 #' @param ggplot_args (list) This option allows you to enter additional ggplot features to the event-study graph produced by the command. Enter all your arguments in the list, as you would list them with a + in general. For instance, you can modify legends by using \code{ggplot_args = list(labs(…))}. More pervasive changes can be done by directly interacting with the ggplot object stored in the \code{$plot} sub-list of the assigned \code{did_multiplegt_dyn} object.
@@ -60,7 +62,7 @@
 #' 
 #' @section Contacts:
 #' 
-#' Github repository: [chaisemartinPackages/did_multiplegt_dyn](https://github.com/chaisemartinPackages/did_multiplegt_dyn)
+#' Github repository: [chaisemartinPackages/did_multiplegt_dyn](https://github.com/Credible-Answers/did_multiplegt_dyn)
 #' 
 #' Mail: [chaisemartin.packages@gmail.com](mailto:chaisemartin.packages@gmail.com)
 #' 
@@ -169,6 +171,7 @@ did_multiplegt_dyn <- function(
     by = NULL,
     by_path = NULL,
     predict_het = NULL,
+    predict_het_hc2bm = FALSE,
     date_first_switch = NULL, 
     same_switchers = FALSE, 
     same_switchers_pl = FALSE, 
@@ -177,13 +180,35 @@ did_multiplegt_dyn <- function(
     ci_level = 95, 
     graph_off = FALSE,
     save_results = NULL, 
-    save_sample = FALSE, 
+    save_sample = FALSE,
     less_conservative_se = FALSE,
+    more_granular_demeaning = FALSE,
     bootstrap = NULL,
     dont_drop_larger_lower = FALSE, 
     drop_if_d_miss_before_first_switch = FALSE,
     ggplot_args = NULL
-    ) { 
+    ) {
+
+  #### Check if polars is loaded ####
+  if (!requireNamespace("polars", quietly = TRUE)) {
+    stop(
+      "The 'polars' package is required but not installed.\n",
+      "Please install it from r-universe with:\n",
+      "  install.packages('polars', repos = 'https://rpolars.r-universe.dev')\n",
+      "Then load it with: library(polars)",
+      call. = FALSE
+    )
+  }
+
+  if (!"polars" %in% .packages()) {
+    warning(
+      "The 'polars' package is installed but not loaded.\n",
+      "For optimal performance, please run: library(polars)\n",
+      "before using did_multiplegt_dyn().",
+      call. = FALSE,
+      immediate. = TRUE
+    )
+  }
 
   #### General syntax checks ####
   if (!is.null(cluster)) {
@@ -205,9 +230,25 @@ did_multiplegt_dyn <- function(
         if (!(length(get(v)) == 1 & inherits(get(v), "character"))) {
           stop(sprintf("Syntax error in %s option. Only one string allowed.", v))
         }
-      } else if (v %in% c("effects", "ci_level", "continuous", "bootstrap")) {
+      } else if (v %in% c("effects", "ci_level", "continuous")) {
         if (!(inherits(get(v), "numeric") & get(v) %% 1 == 0 & get(v) > 0)) {
           stop(sprintf("Syntax error in %s option. Positive integer required.", v))
+        }
+      } else if (v == "bootstrap") {
+        # Bootstrap can be integer or list(reps, seed)
+        if (inherits(get(v), "list")) {
+          if (length(get(v)) != 2) {
+            stop("Syntax error in bootstrap option. List must have exactly 2 elements: list(reps, seed).")
+          }
+          if (!(inherits(get(v)[[1]], "numeric") & get(v)[[1]] > 1)) {
+            stop("Syntax error in bootstrap option. First element (reps) must be an integer greater than 1.")
+          }
+        } else if (inherits(get(v), "numeric")) {
+          if (!(get(v) %% 1 == 0 & get(v) > 1)) {
+            stop("Syntax error in bootstrap option. At least 2 bootstrap replications required.")
+          }
+        } else {
+          stop("Syntax error in bootstrap option. Integer or list(reps, seed) required.")
         }
       } else if (v == "placebo") {
         if (!(inherits(get(v), "numeric") & ((get(v) %% 1 == 0  & get(v) > 0) | get(v) == 0))) {
@@ -216,10 +257,6 @@ did_multiplegt_dyn <- function(
       } else if (v == "by_path") {
         if (!(inherits(get(v), "numeric") & ((get(v) %% 1 == 0  & get(v) > 0) | get(v) == -1))) {
           stop(sprintf("Syntax error in %s option. Positive integer or -1 (to select all treatment paths) required.", v))
-        }
-      } else if (v == "bootstrap") {
-        if (!(inherits(get(v), "numeric") & get(v) > 1)) {
-          stop(sprintf("Syntax error in %s option. At least 2 bootstrap replications required.", v))
         }
       } else if (v %in% c("predict_het")) {
         if (!(inherits(get(v), "list") & length(get(v)) == 2)) {
@@ -233,9 +270,13 @@ did_multiplegt_dyn <- function(
         if (!(inherits(get(v), "character"))) {
           stop(sprintf("Syntax error in %s option. String or string array required.", v))
         }
-      } else if (v %in% c("normalized", "normalized_weights", "effects_equal", "trends_lin", "same_switchers", "same_switchers_pl", "graph_off", "save_sample", "less_conservative_se", "dont_drop_larger_lower", "drop_if_d_miss_before_first_switch")) {
+      } else if (v %in% c("normalized", "normalized_weights", "trends_lin", "same_switchers", "same_switchers_pl", "graph_off", "save_sample", "less_conservative_se", "more_granular_demeaning", "dont_drop_larger_lower", "drop_if_d_miss_before_first_switch", "predict_het_hc2bm", "only_never_switchers")) {
         if (!inherits(get(v), "logical")) {
           stop(sprintf("Syntax error in %s option. Logical required.", v))
+        }
+      } else if (v == "effects_equal") {
+        if (!(inherits(get(v), "logical") | inherits(get(v), "character"))) {
+          stop(sprintf("Syntax error in %s option. Logical or string (e.g., 'all' or 'lb, ub') required.", v))
         }
       }
     }
@@ -257,6 +298,47 @@ did_multiplegt_dyn <- function(
     if (!is.null(controls)) {
       stop("The options predict_het and controls cannot be specified together!")
     }
+  }
+
+  #### predict_het_hc2bm requires predict_het
+  if (isTRUE(predict_het_hc2bm) & is.null(predict_het)) {
+    stop("Option predict_het_hc2bm only available when predict_het is specified.")
+  }
+
+  #### more_granular_demeaning enables less_conservative_se
+  if (isTRUE(more_granular_demeaning)) {
+    less_conservative_se <- TRUE
+  }
+
+  #### Process effects_equal if it's a string
+  effects_equal_lb <- NULL
+  effects_equal_ub <- NULL
+  if (inherits(effects_equal, "character")) {
+    if (effects_equal == "all") {
+      effects_equal <- TRUE
+    } else {
+      # Parse "lb, ub" format
+      parts <- strsplit(effects_equal, ",")[[1]]
+      if (length(parts) != 2) {
+        stop("Syntax error in effects_equal option. Use TRUE, 'all', or 'lb, ub' format (e.g., '2, 5').")
+      }
+      effects_equal_lb <- as.integer(trimws(parts[1]))
+      effects_equal_ub <- as.integer(trimws(parts[2]))
+      if (is.na(effects_equal_lb) | is.na(effects_equal_ub)) {
+        stop("Syntax error in effects_equal option. Bounds must be integers.")
+      }
+      if (effects_equal_ub <= effects_equal_lb | effects_equal_lb < 1) {
+        stop("Syntax error in effects_equal option: The bounds specified are out of range.")
+      }
+      effects_equal <- TRUE
+    }
+  }
+
+  #### Process bootstrap if it's a list
+  bootstrap_seed <- NULL
+  if (!is.null(bootstrap) && inherits(bootstrap, "list")) {
+    bootstrap_seed <- bootstrap[[2]]
+    bootstrap <- as.integer(bootstrap[[1]])
   }
 
   #### The continous and the design option(s) should not be specified simulataneously
@@ -326,7 +408,7 @@ did_multiplegt_dyn <- function(
       df_main <- df
     }
 
-    df_est <- did_multiplegt_main(df = df_main, outcome = outcome, group =  group, time =  time, treatment = treatment, effects = effects, placebo = placebo, ci_level = ci_level,switchers = switchers, trends_nonparam = trends_nonparam, weight = weight, controls = controls, dont_drop_larger_lower = dont_drop_larger_lower, drop_if_d_miss_before_first_switch = drop_if_d_miss_before_first_switch, cluster = cluster, same_switchers = same_switchers, same_switchers_pl = same_switchers_pl, only_never_switchers = only_never_switchers, effects_equal = effects_equal, save_results = save_results, normalized = normalized, predict_het = predict_het, trends_lin = trends_lin, less_conservative_se = less_conservative_se, continuous = continuous)
+    df_est <- did_multiplegt_main(df = df_main, outcome = outcome, group =  group, time =  time, treatment = treatment, effects = effects, placebo = placebo, ci_level = ci_level,switchers = switchers, trends_nonparam = trends_nonparam, weight = weight, controls = controls, dont_drop_larger_lower = dont_drop_larger_lower, drop_if_d_miss_before_first_switch = drop_if_d_miss_before_first_switch, cluster = cluster, same_switchers = same_switchers, same_switchers_pl = same_switchers_pl, only_never_switchers = only_never_switchers, effects_equal = effects_equal, effects_equal_lb = effects_equal_lb, effects_equal_ub = effects_equal_ub, save_results = save_results, normalized = normalized, predict_het = predict_het, predict_het_hc2bm = predict_het_hc2bm, trends_lin = trends_lin, less_conservative_se = less_conservative_se, continuous = continuous)
 
     temp_obj <- list(df_est$did_multiplegt_dyn)
     names(temp_obj)[length(temp_obj)] <- "results"
@@ -334,8 +416,12 @@ did_multiplegt_dyn <- function(
     names(temp_obj)[length(temp_obj)] <- "coef"
 
     if (!is.null(bootstrap)) {
-      message(sprintf("\nBootstrap, %.0f reps:", bootstrap))
-      temp_obj$results <- did_multiplegt_bootstrap(df = df_main, outcome = outcome, group =  group, time =  time, treatment = treatment, effects = effects, placebo = placebo, ci_level = ci_level,switchers = switchers, trends_nonparam = trends_nonparam, weight = weight, controls = controls, dont_drop_larger_lower = dont_drop_larger_lower, drop_if_d_miss_before_first_switch = drop_if_d_miss_before_first_switch, cluster = cluster, same_switchers = same_switchers, same_switchers_pl = same_switchers_pl, only_never_switchers = only_never_switchers, effects_equal = FALSE, save_results = NULL, normalized = normalized, predict_het = predict_het, trends_lin = trends_lin, less_conservative_se = less_conservative_se, continuous = continuous, bootstrap = bootstrap, base = temp_obj$results)
+      if (!is.null(bootstrap_seed)) {
+        message(sprintf("\nBootstrap, %.0f reps (seed = %.0f):", bootstrap, bootstrap_seed))
+      } else {
+        message(sprintf("\nBootstrap, %.0f reps:", bootstrap))
+      }
+      temp_obj$results <- did_multiplegt_bootstrap(df = df_main, outcome = outcome, group =  group, time =  time, treatment = treatment, effects = effects, placebo = placebo, ci_level = ci_level,switchers = switchers, trends_nonparam = trends_nonparam, weight = weight, controls = controls, dont_drop_larger_lower = dont_drop_larger_lower, drop_if_d_miss_before_first_switch = drop_if_d_miss_before_first_switch, cluster = cluster, same_switchers = same_switchers, same_switchers_pl = same_switchers_pl, only_never_switchers = only_never_switchers, effects_equal = FALSE, save_results = NULL, normalized = normalized, predict_het = predict_het, trends_lin = trends_lin, less_conservative_se = less_conservative_se, continuous = continuous, bootstrap = bootstrap, bootstrap_seed = bootstrap_seed, base = temp_obj$results)
     }
 
     if (!is.null(design)) {
