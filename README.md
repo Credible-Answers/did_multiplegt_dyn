@@ -197,6 +197,7 @@ deregulations on loans volume, restricting the estimation to switchers for which
 Same steps and data as above.
 
 ```applescript
+library(polars)
 library(DIDmultiplegtDYN)
 data(favara_imbs)
 ```
