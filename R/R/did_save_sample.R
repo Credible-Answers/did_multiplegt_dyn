@@ -2,7 +2,7 @@
 #' @param data data
 #' @param Gn Gn
 #' @param Tn Tn
-#' @import data.table
+#' @note polars is suggested for better performance
 #' @returns The input dataframe df plus two added columns.
 #' @noRd
 did_save_sample <- function(
@@ -16,7 +16,7 @@ did_save_sample <- function(
   df_save <- subset(df, !is.na(df$group) & !is.na(df$time))
   df_save <- subset(df_save, select = c("group", "time", "S_g_XX", "switchers_tag_XX"))
 	## redefine S_g_XX to show if group is switcher in/out or control	
-  df_save <- data.table::setnames(df_save, old = c("group", "time", "S_g_XX", "switchers_tag_XX"), new = c(Gn, Tn, "did_sample", "did_effect")) 
+  names(df_save) <- c(Gn, Tn, "did_sample", "did_effect") 
   df_save$did_sample <- ifelse(df_save$did_sample == 0, -1, df_save$did_sample)
   df_save$did_sample <- ifelse(is.na(df_save$did_sample), 0, df_save$did_sample)
   df_save$did_sample <- factor(df_save$did_sample, levels = c(0,1,-1), labels = c("Control", "Switcher-in", "Switcher-out"))

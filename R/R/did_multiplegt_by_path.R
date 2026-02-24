@@ -26,7 +26,7 @@
 #' @param less_conservative_se less_conservative_se
 #' @param continuous continuous
 #' @returns A dataframe with the by_path classifier
-#' @import data.table
+#' @note polars is suggested for better performance
 #' @noRd
 
 did_multiplegt_by_path <- function(
@@ -62,10 +62,10 @@ did_multiplegt_by_path <- function(
 
     design_base <- did_multiplegt_dyn_design(data = data, design_opt = list(1, "console"), weight = weight, by = NULL, by_index = "_no_by", file = NULL)
 
-    path_index <- copy(data$df)
+    path_index <- as.data.frame(data$df)
     l_XX <- data$l_XX
     T_max_XX <- data$T_max_XX
-    path_index <- path_index[, c("group", "time", "time_XX", "treatment_XX", "F_g_XX"), with = TRUE]
+    path_index <- path_index[, c("group", "time", "time_XX", "treatment_XX", "F_g_XX")]
 
     data <- NULL
     if (by_path == -1) {
@@ -85,7 +85,11 @@ did_multiplegt_by_path <- function(
     }
     path_index$treatment_XX <- NULL
     for (j in 0:l_XX) {
-        path_index[, paste0("D_fg",j) := mean(get(paste0("D_Fg",j)), na.rm = TRUE), by = c("group")]
+        source_col <- paste0("D_Fg", j)
+        target_col <- paste0("D_fg", j)
+        agg_dfg <- aggregate(path_index[[source_col]], by = list(group = path_index$group), FUN = mean, na.rm = TRUE)
+        names(agg_dfg)[2] <- target_col
+        path_index <- merge(path_index, agg_dfg, by = "group", all.x = TRUE)
     }
 
     for (j in 0:l_XX) {
@@ -102,7 +106,9 @@ did_multiplegt_by_path <- function(
     path_index$time_XX <- path_index$F_g_XX <- NULL
     path_index$baseline_XX <- substr(path_index$path,1,1)
 
-    path_index <- data.table::setnames(path_index, old =  c("group", "time", "path", "yet_to_switch_XX", "baseline_XX"), new =  c(group, time, "path_XX", "yet_to_switch_XX", "baseline_XX"))
+    names(path_index)[names(path_index) == "group"] <- group
+    names(path_index)[names(path_index) == "time"] <- time
+    names(path_index)[names(path_index) == "path"] <- "path_XX"
     df <- merge(df, path_index, by = c(group, time))
     df <- df[order(df[[group]], df[[time]]), ]
     data <- list(df = df, path = path)

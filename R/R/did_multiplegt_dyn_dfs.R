@@ -4,7 +4,7 @@
 #' @param by by
 #' @param by_index by_index
 #' @param file file
-#' @import data.table
+#' @note polars is suggested for better performance
 #' @returns A list with the date_first_switch output.
 #' @noRd
 did_multiplegt_dyn_dfs <- function(
@@ -17,6 +17,10 @@ did_multiplegt_dyn_dfs <- function(
 
     # Inherited Globals #
     df <- data$df
+    # Convert polars DataFrame to R data.frame for base R operations
+    if (inherits(df, "polars_data_frame")) {
+      df <- as.data.frame(df)
+    }
     T_max_XX <- data$T_max_XX
 
     tot_s <- NULL
@@ -42,7 +46,11 @@ did_multiplegt_dyn_dfs <- function(
   if (dfs_opt == "") {
 		## collapse the number of groups by time
     df$tot_s <- 1
-    df[, tot_s := sum(tot_s, na.rm = TRUE), by = time]
+    tot_agg <- aggregate(df$tot_s, by = list(time = df$time), FUN = sum, na.rm = TRUE)
+    names(tot_agg)[2] <- "tot_s_sum"
+    df <- merge(df, tot_agg, by = "time", all.x = TRUE)
+    df$tot_s <- df$tot_s_sum
+    df$tot_s_sum <- NULL
     df$group <- df$F_g_XX <- df$d_sq_XX <- NULL
     df <- unique(df)
     df <- df[order(df$time), ]
@@ -62,7 +70,6 @@ did_multiplegt_dyn_dfs <- function(
         dfsmat[i,j] <- as.numeric(df[i,j])
       }
     }
-    df <- data.table(df)
     colnames(dfsmat) <- coln
     rownames(dfsmat) <- rown 
     dfsmat[, 2] <- sprintf("%s", format(round(dfsmat[,2], 2), big.mark=",", scientific=FALSE, trim=TRUE))
@@ -87,7 +94,11 @@ did_multiplegt_dyn_dfs <- function(
   if (dfs_opt == "by_baseline_treat") {
 		## collapse, but this time by time and status quo treatment
     df$tot_s <- 1
-    df[, tot_s := sum(tot_s, na.rm = TRUE), by = c("time", "d_sq_XX")]
+    tot_agg2 <- aggregate(df$tot_s, by = list(time = df$time, d_sq_XX = df$d_sq_XX), FUN = sum, na.rm = TRUE)
+    names(tot_agg2)[3] <- "tot_s_sum"
+    df <- merge(df, tot_agg2, by = c("time", "d_sq_XX"), all.x = TRUE)
+    df$tot_s <- df$tot_s_sum
+    df$tot_s_sum <- NULL
     df$group <- df$F_g_XX <- NULL
     df <- unique(df)
     df <- df[order(df$d_sq_XX, df$time), ]
@@ -120,7 +131,6 @@ did_multiplegt_dyn_dfs <- function(
           dfsmat[i,j] <- as.numeric(df_by[i,j])
         }
       }
-      df_by <- data.table(df_by)
       colnames(dfsmat) <- coln
       rownames(dfsmat) <- rown 
       

@@ -1,1 +1,0 @@
-We have been making changes and correcting bugs to the did_multiplegt_dyn Stata command. We are in the process of incorporating those same changes into the R command, and are momentarily taking down that command from GitHub while we do so. We will put it back on GitHub as soon as those changes have been incorporated. Thank you for your patience.
