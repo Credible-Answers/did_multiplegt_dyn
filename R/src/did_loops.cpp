@@ -1397,3 +1397,167 @@ List same_switchers_loop_cpp(NumericVector outcome,
 
   return List::create(Named("N_g_control_check") = N_g_control_check);
 }
+
+// ============================================================================
+// BOOTSTRAP OPTIMIZATION FUNCTIONS
+// ============================================================================
+
+// [[Rcpp::export]]
+List bootstrap_prepare_groups_cpp(IntegerVector group) {
+  // Pre-compute group structure for fast repeated bootstrap sampling
+  // Returns: list with group_ids, group_starts, group_sizes, and row_indices per group
+
+  int n = group.size();
+
+  // Find unique groups and their positions
+  std::map<int, std::vector<int>> group_indices;
+  for (int i = 0; i < n; i++) {
+    if (!IntegerVector::is_na(group[i])) {
+      group_indices[group[i]].push_back(i);
+    }
+  }
+
+  int n_groups = group_indices.size();
+  IntegerVector group_ids(n_groups);
+  IntegerVector group_sizes(n_groups);
+  List row_indices(n_groups);
+
+  int idx = 0;
+  for (auto& kv : group_indices) {
+    group_ids[idx] = kv.first;
+    group_sizes[idx] = kv.second.size();
+    row_indices[idx] = IntegerVector(kv.second.begin(), kv.second.end());
+    idx++;
+  }
+
+  return List::create(
+    Named("group_ids") = group_ids,
+    Named("group_sizes") = group_sizes,
+    Named("row_indices") = row_indices,
+    Named("n_groups") = n_groups,
+    Named("n_rows") = n
+  );
+}
+
+// [[Rcpp::export]]
+IntegerVector bootstrap_sample_indices_cpp(List group_info) {
+  // Fast bootstrap sampling using pre-computed group structure
+  // Samples groups with replacement and returns all row indices
+  // Note: Seed should be set in R using set.seed() before calling this function
+
+  IntegerVector group_sizes = group_info["group_sizes"];
+  List row_indices = group_info["row_indices"];
+  int n_groups = group_info["n_groups"];
+  int n_rows = group_info["n_rows"];
+
+  // Sample groups with replacement using R's RNG
+  std::vector<int> result;
+  result.reserve(n_rows);  // Reserve approximate size
+
+  for (int i = 0; i < n_groups; i++) {
+    // Sample a random group index using R's RNG (0 to n_groups-1)
+    int sampled_group = (int)(R::runif(0.0, 1.0) * n_groups);
+    if (sampled_group >= n_groups) sampled_group = n_groups - 1;  // Edge case
+
+    // Get all row indices for this group
+    IntegerVector indices = row_indices[sampled_group];
+    for (int j = 0; j < indices.size(); j++) {
+      result.push_back(indices[j]);
+    }
+  }
+
+  return IntegerVector(result.begin(), result.end());
+}
+
+// [[Rcpp::export]]
+NumericVector bootstrap_compute_sd_cpp(NumericMatrix results) {
+  // Compute column-wise standard deviation using Welford's algorithm
+  // Input: B x n_effects matrix where each row is a bootstrap iteration
+  // Output: vector of SDs (one per column/effect)
+
+  int n_bootstrap = results.nrow();
+  int n_effects = results.ncol();
+
+  NumericVector sd_results(n_effects);
+
+  for (int j = 0; j < n_effects; j++) {
+    // Welford's online algorithm for numerical stability
+    double mean = 0.0;
+    double M2 = 0.0;
+    int count = 0;
+
+    for (int i = 0; i < n_bootstrap; i++) {
+      double x = results(i, j);
+      if (!NumericVector::is_na(x)) {
+        count++;
+        double delta = x - mean;
+        mean += delta / count;
+        double delta2 = x - mean;
+        M2 += delta * delta2;
+      }
+    }
+
+    if (count > 1) {
+      sd_results[j] = sqrt(M2 / (count - 1));
+    } else {
+      sd_results[j] = NA_REAL;
+    }
+  }
+
+  return sd_results;
+}
+
+// [[Rcpp::export]]
+NumericMatrix bootstrap_extract_results_cpp(List results_list, int n_bootstrap, int n_effects) {
+  // Extract effect estimates from a list of result objects into a matrix
+  // Handles variable-length results gracefully
+
+  NumericMatrix result_matrix(n_bootstrap, n_effects);
+  std::fill(result_matrix.begin(), result_matrix.end(), NA_REAL);
+
+  for (int i = 0; i < n_bootstrap; i++) {
+    if (i < results_list.size()) {
+      SEXP item = results_list[i];
+      if (!Rf_isNull(item) && Rf_isNumeric(item)) {
+        NumericVector effects = as<NumericVector>(item);
+        int n_copy = std::min((int)effects.size(), n_effects);
+        for (int j = 0; j < n_copy; j++) {
+          result_matrix(i, j) = effects[j];
+        }
+      }
+    }
+  }
+
+  return result_matrix;
+}
+
+// [[Rcpp::export]]
+List bootstrap_compute_ci_cpp(NumericVector estimates,
+                               NumericVector sd_vec,
+                               double ci_level) {
+  // Compute confidence intervals from estimates and SDs
+  // ci_level should be between 0 and 1 (e.g., 0.95 for 95% CI)
+
+  int n = estimates.size();
+  NumericVector lb(n);
+  NumericVector ub(n);
+
+  // Compute z-value for CI
+  double alpha = 1.0 - ci_level;
+  double z = R::qnorm(1.0 - alpha/2.0, 0.0, 1.0, 1, 0);
+
+  for (int i = 0; i < n; i++) {
+    if (!NumericVector::is_na(estimates[i]) && !NumericVector::is_na(sd_vec[i])) {
+      lb[i] = estimates[i] - z * sd_vec[i];
+      ub[i] = estimates[i] + z * sd_vec[i];
+    } else {
+      lb[i] = NA_REAL;
+      ub[i] = NA_REAL;
+    }
+  }
+
+  return List::create(
+    Named("lb") = lb,
+    Named("ub") = ub
+  );
+}

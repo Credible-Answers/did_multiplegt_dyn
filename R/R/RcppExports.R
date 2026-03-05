@@ -101,3 +101,23 @@ same_switchers_loop_cpp <- function(outcome, group, time, F_g, N_gt, d_sq, effec
     .Call(`_DIDmultiplegtDYN_same_switchers_loop_cpp`, outcome, group, time, F_g, N_gt, d_sq, effects, T_max, only_never_switchers)
 }
 
+bootstrap_prepare_groups_cpp <- function(group) {
+    .Call(`_DIDmultiplegtDYN_bootstrap_prepare_groups_cpp`, group)
+}
+
+bootstrap_sample_indices_cpp <- function(group_info) {
+    .Call(`_DIDmultiplegtDYN_bootstrap_sample_indices_cpp`, group_info)
+}
+
+bootstrap_compute_sd_cpp <- function(results) {
+    .Call(`_DIDmultiplegtDYN_bootstrap_compute_sd_cpp`, results)
+}
+
+bootstrap_extract_results_cpp <- function(results_list, n_bootstrap, n_effects) {
+    .Call(`_DIDmultiplegtDYN_bootstrap_extract_results_cpp`, results_list, n_bootstrap, n_effects)
+}
+
+bootstrap_compute_ci_cpp <- function(estimates, sd_vec, ci_level) {
+    .Call(`_DIDmultiplegtDYN_bootstrap_compute_ci_cpp`, estimates, sd_vec, ci_level)
+}
+
