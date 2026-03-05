@@ -61,9 +61,8 @@ did_multiplegt_bootstrap <- function(
 ){
 
     ## Set seed if provided
-    if (!is.null(bootstrap_seed)) {
-      set.seed(bootstrap_seed)
-    }
+    base_seed <- if (!is.null(bootstrap_seed)) bootstrap_seed else as.integer(Sys.time())
+    set.seed(base_seed)
 
     bresults_effects <- NULL
     bresults_ATE <- NULL
@@ -81,17 +80,19 @@ did_multiplegt_bootstrap <- function(
 
     bs_group <- if (!is.null(cluster)) cluster else group
 
-    # Create index mapping using split() - much faster than loop with subset()
-    row_ids <- seq_len(nrow(df))
-    xtset <- split(row_ids, df[[bs_group]])
+    # Pre-compute group structure using C++ for fast repeated sampling
+    group_vec <- as.integer(as.factor(df[[bs_group]]))
+    group_info <- bootstrap_prepare_groups_cpp(group_vec)
 
-    n_xtset <- length(xtset)
     group_col <- group
     time_col <- time
 
     for (j in 1:bootstrap) {
-        # Sample clusters/groups with replacement and get row indices
-        sampled_idx <- list_to_vec(xtset[sample.int(n_xtset, size = n_xtset, replace = TRUE)])
+        # Fast C++ bootstrap sampling (uses R's RNG, seed already set above)
+        sampled_idx <- bootstrap_sample_indices_cpp(group_info)
+
+        # Convert to 1-based R indexing
+        sampled_idx <- sampled_idx + 1L
         df_boot <- df[sampled_idx, ]
 
         # Sort the data frame
@@ -129,39 +130,46 @@ did_multiplegt_bootstrap <- function(
     }
 
     ci_level <- ci_level / 100
-    z_level <- qnorm(ci_level + (1 - ci_level)/2)
 
-    # Vectorized SE computation for effects
-    effect_sds <- apply(bresults_effects, 2, sd, na.rm = TRUE)
+    # Fast C++ SD computation for effects
+    effect_sds <- bootstrap_compute_sd_cpp(bresults_effects)
     n_eff <- nrow(base$Effects)
     base$Effects[1:n_eff, 2] <- effect_sds[1:n_eff]
-    base$Effects[1:n_eff, 3] <- base$Effects[1:n_eff, 1] - z_level * base$Effects[1:n_eff, 2]
-    base$Effects[1:n_eff, 4] <- base$Effects[1:n_eff, 1] + z_level * base$Effects[1:n_eff, 2]
+
+    # Fast C++ CI computation for effects
+    ci_effects <- bootstrap_compute_ci_cpp(base$Effects[1:n_eff, 1], effect_sds[1:n_eff], ci_level)
+    base$Effects[1:n_eff, 3] <- ci_effects$lb
+    base$Effects[1:n_eff, 4] <- ci_effects$ub
 
     if (nrow(base$Effects) == 1) {
         class(base$Effects) <- "numeric"
     }
 
-    # ATE SE computation
+    # ATE SE computation using C++
     if (!is.null(bresults_ATE) && !is.null(base$ATE[1])) {
-        base$ATE[2] <- sd(bresults_ATE, na.rm = TRUE)
-        base$ATE[3] <- base$ATE[1] - z_level * base$ATE[2]
-        base$ATE[4] <- base$ATE[1] + z_level * base$ATE[2]
+        ate_sd <- bootstrap_compute_sd_cpp(bresults_ATE)
+        base$ATE[2] <- ate_sd[1]
+        ci_ate <- bootstrap_compute_ci_cpp(base$ATE[1], ate_sd[1], ci_level)
+        base$ATE[3] <- ci_ate$lb[1]
+        base$ATE[4] <- ci_ate$ub[1]
     }
 
-    # Vectorized SE computation for placebos
+    # Fast C++ SD computation for placebos
     if (!is.null(bresults_placebo)) {
-        placebo_sds <- apply(bresults_placebo, 2, sd, na.rm = TRUE)
+        placebo_sds <- bootstrap_compute_sd_cpp(bresults_placebo)
         n_pl <- nrow(base$Placebos)
         base$Placebos[1:n_pl, 2] <- placebo_sds[1:n_pl]
-        base$Placebos[1:n_pl, 3] <- base$Placebos[1:n_pl, 1] - z_level * base$Placebos[1:n_pl, 2]
-        base$Placebos[1:n_pl, 4] <- base$Placebos[1:n_pl, 1] + z_level * base$Placebos[1:n_pl, 2]
+
+        # Fast C++ CI computation for placebos
+        ci_placebo <- bootstrap_compute_ci_cpp(base$Placebos[1:n_pl, 1], placebo_sds[1:n_pl], ci_level)
+        base$Placebos[1:n_pl, 3] <- ci_placebo$lb
+        base$Placebos[1:n_pl, 4] <- ci_placebo$ub
 
         if (nrow(base$Placebos) == 1) {
             class(base$Placebos) <- "numeric"
         }
     }
-    return(base)    
+    return(base)
 }
 
 #' Internal function to convert lists to vectors (optimized)

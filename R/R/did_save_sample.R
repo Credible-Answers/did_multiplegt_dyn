@@ -6,11 +6,15 @@
 #' @returns The input dataframe df plus two added columns.
 #' @noRd
 did_save_sample <- function(
-    data, 
-    Gn, 
+    data,
+    Gn,
     Tn
     ) {
   df <- data$df
+  # Convert polars DataFrame or data.table to R data.frame for base R operations
+  if (inherits(df, "polars_data_frame") || inherits(df, "data.table")) {
+    df <- as.data.frame(df)
+  }
   suppressWarnings({
 	## keeping only group, time and switcher status (if not missing)
   df_save <- subset(df, !is.na(df$group) & !is.na(df$time))

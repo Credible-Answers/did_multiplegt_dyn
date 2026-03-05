@@ -411,6 +411,65 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
+// bootstrap_prepare_groups_cpp
+List bootstrap_prepare_groups_cpp(IntegerVector group);
+RcppExport SEXP _DIDmultiplegtDYN_bootstrap_prepare_groups_cpp(SEXP groupSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< IntegerVector >::type group(groupSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_prepare_groups_cpp(group));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bootstrap_sample_indices_cpp
+IntegerVector bootstrap_sample_indices_cpp(List group_info);
+RcppExport SEXP _DIDmultiplegtDYN_bootstrap_sample_indices_cpp(SEXP group_infoSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type group_info(group_infoSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_sample_indices_cpp(group_info));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bootstrap_compute_sd_cpp
+NumericVector bootstrap_compute_sd_cpp(NumericMatrix results);
+RcppExport SEXP _DIDmultiplegtDYN_bootstrap_compute_sd_cpp(SEXP resultsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericMatrix >::type results(resultsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_compute_sd_cpp(results));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bootstrap_extract_results_cpp
+NumericMatrix bootstrap_extract_results_cpp(List results_list, int n_bootstrap, int n_effects);
+RcppExport SEXP _DIDmultiplegtDYN_bootstrap_extract_results_cpp(SEXP results_listSEXP, SEXP n_bootstrapSEXP, SEXP n_effectsSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< List >::type results_list(results_listSEXP);
+    Rcpp::traits::input_parameter< int >::type n_bootstrap(n_bootstrapSEXP);
+    Rcpp::traits::input_parameter< int >::type n_effects(n_effectsSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_extract_results_cpp(results_list, n_bootstrap, n_effects));
+    return rcpp_result_gen;
+END_RCPP
+}
+// bootstrap_compute_ci_cpp
+List bootstrap_compute_ci_cpp(NumericVector estimates, NumericVector sd_vec, double ci_level);
+RcppExport SEXP _DIDmultiplegtDYN_bootstrap_compute_ci_cpp(SEXP estimatesSEXP, SEXP sd_vecSEXP, SEXP ci_levelSEXP) {
+BEGIN_RCPP
+    Rcpp::RObject rcpp_result_gen;
+    Rcpp::RNGScope rcpp_rngScope_gen;
+    Rcpp::traits::input_parameter< NumericVector >::type estimates(estimatesSEXP);
+    Rcpp::traits::input_parameter< NumericVector >::type sd_vec(sd_vecSEXP);
+    Rcpp::traits::input_parameter< double >::type ci_level(ci_levelSEXP);
+    rcpp_result_gen = Rcpp::wrap(bootstrap_compute_ci_cpp(estimates, sd_vec, ci_level));
+    return rcpp_result_gen;
+END_RCPP
+}
 
 static const R_CallMethodDef CallEntries[] = {
     {"_DIDmultiplegtDYN_cummax_by_group_cpp", (DL_FUNC) &_DIDmultiplegtDYN_cummax_by_group_cpp, 2},
@@ -438,6 +497,11 @@ static const R_CallMethodDef CallEntries[] = {
     {"_DIDmultiplegtDYN_compute_vcov_full_cpp", (DL_FUNC) &_DIDmultiplegtDYN_compute_vcov_full_cpp, 6},
     {"_DIDmultiplegtDYN_compute_avg_effect_cpp", (DL_FUNC) &_DIDmultiplegtDYN_compute_avg_effect_cpp, 10},
     {"_DIDmultiplegtDYN_same_switchers_loop_cpp", (DL_FUNC) &_DIDmultiplegtDYN_same_switchers_loop_cpp, 9},
+    {"_DIDmultiplegtDYN_bootstrap_prepare_groups_cpp", (DL_FUNC) &_DIDmultiplegtDYN_bootstrap_prepare_groups_cpp, 1},
+    {"_DIDmultiplegtDYN_bootstrap_sample_indices_cpp", (DL_FUNC) &_DIDmultiplegtDYN_bootstrap_sample_indices_cpp, 1},
+    {"_DIDmultiplegtDYN_bootstrap_compute_sd_cpp", (DL_FUNC) &_DIDmultiplegtDYN_bootstrap_compute_sd_cpp, 1},
+    {"_DIDmultiplegtDYN_bootstrap_extract_results_cpp", (DL_FUNC) &_DIDmultiplegtDYN_bootstrap_extract_results_cpp, 3},
+    {"_DIDmultiplegtDYN_bootstrap_compute_ci_cpp", (DL_FUNC) &_DIDmultiplegtDYN_bootstrap_compute_ci_cpp, 3},
     {NULL, NULL, 0}
 };
 
