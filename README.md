@@ -382,7 +382,7 @@ treatments](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3751060).
 de Chaisemartin, C, D'Haultfoeuille, X, Pasquier, F, Vazquez-Bare, G (2022).
 [Difference-in-Differences Estimators for Treatments Continuously Distributed at Every Period](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=4011782).
     
-de Chaisemartin, C, Ciccia, D, D'Haultfoeuille, X, Knau, F, Malézieux, M, Sow, D (2024). [Estimators and Variance Estimators Computed by the did_multiplegt_dyn Command](https://drive.google.com/file/d/1NGgScujLCCS4RrwdN-PC1SnVigfBa32h/view).
+de Chaisemartin, C, et al (2025). [Using did_multiplegt_dyn to Estimate Event-Study Effects in Complex Designs: Overview, and Four Examples Based on Real Datasets](https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5337463).
 
 ## Authors
 
