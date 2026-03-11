@@ -475,7 +475,7 @@ for which the cell is used in the estimation.
 {cmd:more_granular_demeaning}: when groups' treatment can change multiple times, the standard errors reported
 by default by the command may be conservative. Then, standard errors that may be less conservative when the 
 sample size is large enough can be obtained by specifying this option. See 
-de Chaisemartin et al. (2025) for further details.
+de Chaisemartin et al. (2024) for further details.
 {p_end}
 
 {p 4 8}
@@ -506,7 +506,7 @@ The option {cmd:dont_drop_larger_lower} allows one to keep those cells.
 when the treatment of some groups is missing at some time periods.
 Then,
 the command imputes some of those missing treatments.
-Those imputations are detailed in Appendix A of de Chaisemartin et al (2025).
+Those imputations are detailed in Appendix A of de Chaisemartin et al (2024).
 In designs where
 groups' treatments can change at most once,
 all those imputations are justified by the design.
@@ -515,7 +515,7 @@ imputations may be liberal.
 {cmd:drop_if_d_miss_before_first_switch} can be used to overrule
 liberal imputations that are not innocuous
 for the non-normalized event-study estimators.
-See Appendix A of de Chaisemartin et al (2025) for further details.
+See Appendix A of de Chaisemartin et al (2024) for further details.
 {p_end}
 
 {p 4 8}
@@ -586,7 +586,7 @@ separately for the four most common treatment paths:
 Yes, the two commands can sometimes output different results.
 This is mostly due to different conventions
 in the way the two commands deal with missing values.
-See Appendix B of de Chaisemartin et al (2025) for further details.
+See Appendix B of de Chaisemartin et al (2024) for further details.
 {p_end}
 
 {p 4 4}
@@ -617,7 +617,7 @@ It may also be that some groups enter and exit the data multiple times.
 For instance, you observe a
 county in 1990, 1991, 1994, 1996, and 2000. Then,
 the command may impute some of that county's missing treatments.
-Those imputations are detailed in Appendix A of de Chaisemartin et al (2025).
+Those imputations are detailed in Appendix A of de Chaisemartin et al (2024).
 In designs where
 groups' treatments can change at most once,
 all those imputations are justified by the design.
@@ -626,7 +626,7 @@ imputations may be liberal.
 {cmd:drop_if_d_miss_before_first_switch} can be used to overrule
 the potentially liberal imputations
 that are not innocuous for the non-normalized event-study estimators. 
-See Appendix A of de Chaisemartin et al (2025) for further details.
+See Appendix A of de Chaisemartin et al (2024) for further details.
 {p_end}
 
 {p 4 4}
@@ -856,8 +856,8 @@ de Chaisemartin, C, D'Haultfoeuille, X (2023).
 {browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=3751060":Two-way fixed effects regressions with several treatments}. Journal of Econometrics.
 {p_end}
 {p 4 8}
-de Chaisemartin, C., Ciccia, D., Knau, F., Malézieux, M., Sow, D., Arboleda, D., Angotti, R., D’Haultfoeuille, X., Li, Bingxue., Fabre, H., Quispe, A. (2025).
-{browse "https://papers.ssrn.com/sol3/papers.cfm?abstract_id=5337463": Using did_multiplegt_dyn to Estimate Event-Study Effects in Complex Designs: Overview, and Four Examples Based on Real Datasets}.
+de Chaisemartin, C, Ciccia, D, D'Haultfoeuille, X, Knau, F, Malézieux, M, Sow, D (2024).
+{browse "https://drive.google.com/file/d/1NGgScujLCCS4RrwdN-PC1SnVigfBa32h/view?usp=drive_link": Event-Study Estimators and Variance Estimators Computed by the did_multiplegt_dyn Command}.
 {p_end}
 
 {title:Auxiliary packages}
