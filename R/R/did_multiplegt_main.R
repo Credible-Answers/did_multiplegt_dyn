@@ -4,6 +4,61 @@
   getOption("DID_USE_POLARS", default = TRUE)
 }
 
+#' Mimic Stata's invsym() function
+#'
+#' Stata's invsym() uses Cholesky decomposition for symmetric positive-definite
+#' matrices. For singular matrices, it returns a generalized inverse where
+#' rows/columns corresponding to zero pivots are set to zero.
+#'
+#' @param M A symmetric matrix
+#' @param tol Tolerance for detecting singularity
+#' @return The inverse (or generalized inverse) of M
+#' @noRd
+invsym_r <- function(M, tol = 1e-14) {
+  n <- nrow(M)
+
+  # Try Cholesky decomposition with pivoting (like Stata)
+  ch <- tryCatch({
+    chol(M, pivot = TRUE)
+  }, error = function(e) NULL)
+
+  if (!is.null(ch)) {
+    pivot <- attr(ch, "pivot")
+    rank <- attr(ch, "rank")
+
+    if (is.null(rank)) {
+      # No rank attribute means full rank
+      rank <- n
+    }
+
+    if (rank == n) {
+      # Full rank - use chol2inv (equivalent to Stata invsym for non-singular)
+      # Reorder back to original order
+      oo <- order(pivot)
+      return(chol2inv(ch)[oo, oo, drop = FALSE])
+    } else {
+      # Singular matrix - zero out rows/cols for dropped pivots (like Stata)
+      inv <- matrix(0, n, n)
+      if (rank > 0) {
+        R <- ch[1:rank, 1:rank, drop = FALSE]
+        inv_sub <- chol2inv(R)
+        idx <- pivot[1:rank]
+        inv[idx, idx] <- inv_sub
+      }
+      return(inv)
+    }
+  } else {
+    # Cholesky failed - try solve() as fallback
+    tryCatch({
+      solve(M)
+    }, error = function(e) {
+      # Last resort: use ginv
+      warning("invsym_r: Matrix inversion failed, using ginv as fallback")
+      MASS::ginv(M)
+    })
+  }
+}
+
 #' Internal function of did_multiplegt_dyn
 #' @param df df
 #' @param outcome outcome
@@ -983,7 +1038,13 @@ suppressWarnings({
           M <- overall[idx_controls, idx_controls, drop = FALSE]
           v <- overall[idx_controls, 1, drop = FALSE]
 
-          theta_d <- ginv(M) %*% v
+          # Store M matrix (didmgt_XX) and v vector (didmgt_Xy)
+          assign(paste0("didmgt_XX_", l, "_XX"), M)
+          assign(paste0("didmgt_Xy_", l, "_XX"), v)
+
+          # Use invsym_r to mimic Stata's invsym() (Cholesky-based inverse)
+          inv_M <- invsym_r(M)
+          theta_d <- inv_M %*% v
           assign(paste0("coefs_sq_", l, "_XX"), theta_d)
           levels_d_sq_XX_final <- c(levels_d_sq_XX_final, l)
 
@@ -991,8 +1052,7 @@ suppressWarnings({
             store_singular[as.character(l)] <- TRUE
           }
 
-          # Stata computes rsum on control sample only (after keep if ever_change_d_XX==0&...)
-          # Filter to control sample first, then apply time conditions
+          # Compute rsum on control sample only
           control_sample <- df$filter(
             (pl$col("ever_change_d_XX") == 0) &
             pl$col("diff_y_XX")$is_not_null() &
@@ -1008,7 +1068,10 @@ suppressWarnings({
           )
           rsum <- pl_sum(rsum_df, "N_gt_XX")
 
-          assign(paste0("inv_Denom_", l, "_XX"), ginv(M) * rsum * G_XX)
+          # Store values for output
+          assign(paste0("rsum_", l, "_XX"), rsum)
+          assign(paste0("invsym_M_", l, "_XX"), inv_M)
+          assign(paste0("inv_Denom_", l, "_XX"), inv_M * rsum * G_XX)
         }
       }
     }
@@ -1342,7 +1405,26 @@ suppressWarnings({
       names(controls_globals)[length(controls_globals)] <- paste0("coefs_sq_", l, "_XX")
       controls_globals <- append(controls_globals, list(get(paste0("inv_Denom_",l,"_XX"))))
       names(controls_globals)[length(controls_globals)] <- paste0("inv_Denom_", l, "_XX")
+      # Add didmgt_XX (M matrix) and didmgt_Xy (v vector) for precision comparison
+      controls_globals <- append(controls_globals, list(get(paste0("didmgt_XX_", l, "_XX"))))
+      names(controls_globals)[length(controls_globals)] <- paste0("didmgt_XX_", l, "_XX")
+      controls_globals <- append(controls_globals, list(get(paste0("didmgt_Xy_", l, "_XX"))))
+      names(controls_globals)[length(controls_globals)] <- paste0("didmgt_Xy_", l, "_XX")
+      # Add rsum and invsym_M for precision comparison (only if they exist)
+      rsum_name <- paste0("rsum_", l, "_XX")
+      invsym_name <- paste0("invsym_M_", l, "_XX")
+      if (exists(rsum_name)) {
+        controls_globals <- append(controls_globals, list(get(rsum_name)))
+        names(controls_globals)[length(controls_globals)] <- rsum_name
+      }
+      if (exists(invsym_name)) {
+        controls_globals <- append(controls_globals, list(get(invsym_name)))
+        names(controls_globals)[length(controls_globals)] <- invsym_name
+      }
     }
+    # Also store G_XX for comparison
+    controls_globals <- append(controls_globals, list(G_XX))
+    names(controls_globals)[length(controls_globals)] <- "G_XX"
   }
 
   ## Initialize variable to earmark switchers by the number of the event-study effect
@@ -2954,6 +3036,12 @@ suppressWarnings({
   }
   ret <- append(ret, list(coef))
   ret_names <- c(ret_names, "coef")
+
+  # Add controls_globals (includes didmgt_XX, didmgt_Xy, coefs_sq, inv_Denom)
+  if (!is.null(controls_globals)) {
+    ret <- append(ret, list(controls_globals))
+    ret_names <- c(ret_names, "controls_globals")
+  }
 
   names(ret) <- ret_names
   ret

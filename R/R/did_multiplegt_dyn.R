@@ -415,6 +415,12 @@ did_multiplegt_dyn <- function(
     temp_obj <- append(temp_obj, list(df_est$coef))
     names(temp_obj)[length(temp_obj)] <- "coef"
 
+    # Add controls_globals (includes didmgt_XX, didmgt_Xy matrices for precision comparison)
+    if (!is.null(df_est$controls_globals)) {
+      temp_obj <- append(temp_obj, list(df_est$controls_globals))
+      names(temp_obj)[length(temp_obj)] <- "controls_globals"
+    }
+
     if (!is.null(bootstrap)) {
       if (!is.null(bootstrap_seed)) {
         message(sprintf("\nBootstrap, %.0f reps (seed = %.0f):", bootstrap, bootstrap_seed))
