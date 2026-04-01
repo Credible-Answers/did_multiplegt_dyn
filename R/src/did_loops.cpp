@@ -11,7 +11,7 @@ using namespace Rcpp;
 IntegerVector cummax_by_group_cpp(IntegerVector x, IntegerVector group) {
   // Cumulative maximum within groups (for ever_change_d_XX propagation)
   // Equivalent to: df[, ever_change_d_XX := cummax(ever_change_d_XX), by = group_XX]
-  int n = x.size();
+  const int n = x.size();
   IntegerVector result(n);
 
   if (n == 0) return result;
@@ -38,23 +38,23 @@ IntegerVector cummax_by_group_cpp(IntegerVector x, IntegerVector group) {
 // [[Rcpp::export]]
 NumericMatrix compute_var_covar_matrix_cpp(NumericMatrix U_Gg_vars,
                                             IntegerVector first_obs,
-                                            int l_XX,
-                                            double G_XX) {
+                                            const int l_XX,
+                                            const double G_XX) {
   // Compute variance-covariance matrix for effects
   // U_Gg_vars: matrix where each column is U_Gg_var_glob_i_XX for i in 1:l_XX
   // first_obs: first_obs_by_gp_XX indicator
   // Returns l_XX x l_XX variance-covariance matrix
 
-  int n = U_Gg_vars.nrow();
+  const int n = U_Gg_vars.nrow();
   NumericMatrix vcov(l_XX, l_XX);
-  double G_XX_sq = G_XX * G_XX;
+  const double G_XX_sq = G_XX * G_XX;
 
   // Compute variances (diagonal)
   for (int i = 0; i < l_XX; i++) {
     double sum_sq = 0.0;
     for (int j = 0; j < n; j++) {
       if (first_obs[j] == 1) {
-        double val = U_Gg_vars(j, i);
+        const double val = U_Gg_vars(j, i);
         if (!NumericVector::is_na(val)) {
           sum_sq += val * val;
         }
@@ -69,16 +69,16 @@ NumericMatrix compute_var_covar_matrix_cpp(NumericMatrix U_Gg_vars,
       double sum_combined_sq = 0.0;
       for (int j = 0; j < n; j++) {
         if (first_obs[j] == 1) {
-          double val_i = U_Gg_vars(j, i);
-          double val_k = U_Gg_vars(j, k);
+          const double val_i = U_Gg_vars(j, i);
+          const double val_k = U_Gg_vars(j, k);
           if (!NumericVector::is_na(val_i) && !NumericVector::is_na(val_k)) {
-            double combined = val_i + val_k;
+            const double combined = val_i + val_k;
             sum_combined_sq += combined * combined;
           }
         }
       }
-      double var_sum = sum_combined_sq / G_XX_sq;
-      double cov = (var_sum - vcov(i, i) - vcov(k, k)) / 2.0;
+      const double var_sum = sum_combined_sq / G_XX_sq;
+      const double cov = (var_sum - vcov(i, i) - vcov(k, k)) / 2.0;
       vcov(i, k) = cov;
       vcov(k, i) = cov;
     }
@@ -90,20 +90,20 @@ NumericMatrix compute_var_covar_matrix_cpp(NumericMatrix U_Gg_vars,
 // [[Rcpp::export]]
 NumericVector compute_U_Gg_global_cpp(NumericVector U_Gg_plus,
                                        NumericVector U_Gg_minus,
-                                       double N1_weight,
-                                       double N0_weight) {
+                                       const double N1_weight,
+                                       const double N0_weight) {
   // Compute weighted combination of U_Gg for switchers in and out
-  int n = U_Gg_plus.size();
+  const int n = U_Gg_plus.size();
   NumericVector result(n);
 
-  double total = N1_weight + N0_weight;
+  const double total = N1_weight + N0_weight;
   if (total == 0) {
     std::fill(result.begin(), result.end(), NA_REAL);
     return result;
   }
 
-  double w_plus = N1_weight / total;
-  double w_minus = N0_weight / total;
+  const double w_plus = N1_weight / total;
+  const double w_minus = N0_weight / total;
 
   for (int i = 0; i < n; i++) {
     result[i] = w_plus * U_Gg_plus[i] + w_minus * U_Gg_minus[i];
@@ -117,9 +117,9 @@ List compute_clustered_variance_cpp(NumericVector U_Gg_var,
                                      IntegerVector first_obs_gp,
                                      IntegerVector first_obs_clust,
                                      IntegerVector cluster,
-                                     double G_XX) {
+                                     const double G_XX) {
   // Compute clustered variance
-  int n = U_Gg_var.size();
+  const int n = U_Gg_var.size();
 
   // Step 1: Multiply by first_obs_by_gp_XX
   NumericVector U_masked(n);
@@ -150,7 +150,7 @@ List compute_clustered_variance_cpp(NumericVector U_Gg_var,
     }
   }
 
-  double sum_for_var = sum_sq / (G_XX * G_XX);
+  const double sum_for_var = sum_sq / (G_XX * G_XX);
 
   return List::create(
     Named("clust_sum") = clust_sum,
@@ -162,11 +162,11 @@ List compute_clustered_variance_cpp(NumericVector U_Gg_var,
 NumericVector propagate_treatment_change_cpp(NumericVector ever_change,
                                               IntegerVector group,
                                               IntegerVector time,
-                                              int T_max) {
+                                              int T_max) { // WHY IS T_MAX PASSED? IT IS NEVER CALLED.
   // Propagate ever_change_d_XX forward within groups
   // This replaces the loop: for (i in 2:T_XX) { ... }
 
-  int n = ever_change.size();
+  const int n = ever_change.size();
   NumericVector result = clone(ever_change);
 
   for (int i = 1; i < n; i++) {
@@ -179,7 +179,7 @@ NumericVector propagate_treatment_change_cpp(NumericVector ever_change,
 }
 
 // [[Rcpp::export]]
-NumericMatrix initialize_effect_columns_cpp(int nrow, int l_XX, bool include_placebo) {
+NumericMatrix initialize_effect_columns_cpp(const int nrow, const int l_XX, const bool include_placebo) {
   // Pre-allocate matrix for effect columns
   // Each column represents: U_Gg{i}_plus_XX, U_Gg{i}_minus_XX, count{i}_plus_XX, etc.
   int ncols = l_XX * 8;  // 8 columns per effect
@@ -197,7 +197,7 @@ NumericMatrix initialize_effect_columns_cpp(int nrow, int l_XX, bool include_pla
 double compute_weighted_sum_cpp(NumericVector x, IntegerVector mask) {
   // Compute sum of x where mask == 1, handling NAs
   double result = 0.0;
-  int n = x.size();
+  const int n = x.size();
 
   for (int i = 0; i < n; i++) {
     if (mask[i] == 1 && !NumericVector::is_na(x[i])) {
@@ -212,19 +212,19 @@ double compute_weighted_sum_cpp(NumericVector x, IntegerVector mask) {
 NumericVector compute_delta_D_g_cpp(NumericMatrix delta_plus,
                                      NumericMatrix delta_minus,
                                      IntegerVector switchers_tag,
-                                     int l_XX) {
+                                     const int l_XX) {
   // Compute delta_D_g_XX by combining plus and minus matrices
-  int n = delta_plus.nrow();
+  const int n = delta_plus.nrow();
   NumericVector result(n, 0.0);
 
   for (int i = 0; i < n; i++) {
-    int tag = switchers_tag[i];
+    const int tag = switchers_tag[i];
     if (!IntegerVector::is_na(tag) && tag >= 1 && tag <= l_XX) {
-      int col = tag - 1;  // 0-indexed
-      double val_plus = delta_plus(i, col);
-      double val_minus = delta_minus(i, col);
+      const int col = tag - 1;  // 0-indexed
+      const double val_plus = delta_plus(i, col);
+      const double val_minus = delta_minus(i, col);
 
-      double val = (val_plus != 0) ? val_plus : val_minus;
+      const double val = (val_plus != 0) ? val_plus : val_minus;
       if (val != 0) {
         result[i] = val;
       }
@@ -240,15 +240,15 @@ List compute_full_vcov_cpp(NumericMatrix U_Gg_vars_effects,
                            IntegerVector first_obs,
                            NumericVector se_effects,
                            NumericVector se_placebos,
-                           double G_XX) {
+                           const double G_XX) {
   // Compute full variance-covariance matrix for effects and placebos
-  int l_XX = U_Gg_vars_effects.ncol();
-  int l_placebo_XX = U_Gg_vars_placebos.ncol();
-  int l_tot = l_XX + l_placebo_XX;
-  int n = U_Gg_vars_effects.nrow();
+  const int l_XX = U_Gg_vars_effects.ncol();
+  const int l_placebo_XX = U_Gg_vars_placebos.ncol();
+  const int l_tot = l_XX + l_placebo_XX;
+  const int n = U_Gg_vars_effects.nrow();
 
   NumericMatrix vcov(l_tot, l_tot);
-  double G_XX_sq = G_XX * G_XX;
+  const double G_XX_sq = G_XX * G_XX;
 
   // Fill diagonal with squared SEs
   for (int i = 0; i < l_XX; i++) {
@@ -265,20 +265,20 @@ List compute_full_vcov_cpp(NumericMatrix U_Gg_vars_effects,
 
       for (int k = 0; k < n; k++) {
         if (first_obs[k] == 1) {
-          double val_i = (i < l_XX) ? U_Gg_vars_effects(k, i) :
+          const double val_i = (i < l_XX) ? U_Gg_vars_effects(k, i) :
                                        U_Gg_vars_placebos(k, i - l_XX);
-          double val_j = (j < l_XX) ? U_Gg_vars_effects(k, j) :
+          const double val_j = (j < l_XX) ? U_Gg_vars_effects(k, j) :
                                        U_Gg_vars_placebos(k, j - l_XX);
 
           if (!NumericVector::is_na(val_i) && !NumericVector::is_na(val_j)) {
-            double combined = val_i + val_j;
+            const double combined = val_i + val_j;
             sum_sq += combined * combined;
           }
         }
       }
 
-      double var_temp = sum_sq / G_XX_sq;
-      double cov = (var_temp - vcov(i, i) - vcov(j, j)) / 2.0;
+      const double var_temp = sum_sq / G_XX_sq;
+      const double cov = (var_temp - vcov(i, i) - vcov(j, j)) / 2.0;
       vcov(i, j) = cov;
       vcov(j, i) = cov;
     }
@@ -292,10 +292,10 @@ List compute_full_vcov_cpp(NumericMatrix U_Gg_vars_effects,
 // ============================================================================
 
 // [[Rcpp::export]]
-NumericVector lag_diff_by_group_cpp(NumericVector x, IntegerVector group, int lag_periods) {
+NumericVector lag_diff_by_group_cpp(NumericVector x, IntegerVector group, const int lag_periods) {
   // Compute x - lag(x, lag_periods) within groups
   // Data must be sorted by group, time
-  int n = x.size();
+  const int n = x.size();
   NumericVector result(n, NA_REAL);
 
   if (n == 0 || lag_periods <= 0) return result;
@@ -310,7 +310,7 @@ NumericVector lag_diff_by_group_cpp(NumericVector x, IntegerVector group, int la
       group_start = i;
     }
 
-    int lag_idx = i - lag_periods;
+    const int lag_idx = i - lag_periods;
     if (lag_idx >= group_start && group[lag_idx] == current_group) {
       if (!NumericVector::is_na(x[i]) && !NumericVector::is_na(x[lag_idx])) {
         result[i] = x[i] - x[lag_idx];
@@ -322,17 +322,17 @@ NumericVector lag_diff_by_group_cpp(NumericVector x, IntegerVector group, int la
 }
 
 // [[Rcpp::export]]
-NumericVector shift_by_group_cpp(NumericVector x, IntegerVector group, int periods) {
+NumericVector shift_by_group_cpp(NumericVector x, IntegerVector group, const int periods) {
   // Shift x by periods within groups (positive = lag, negative = lead)
   // Data must be sorted by group, time
-  int n = x.size();
+  const int n = x.size();
   NumericVector result(n, NA_REAL);
 
   if (n == 0) return result;
 
-  int current_group = group[0];
-  int group_start = 0;
-  int group_end = 0;
+  int current_group = group[0]; // WHY DOES THIS VARIABLE EXIST? IT IS NEVER CALLED.
+  int group_start = 0; // WHY DOES THIS VARIABLE EXIST? IT IS NEVER CALLED.
+  int group_end = 0; // WHY DOES THIS VARIABLE EXIST? IT IS NEVER CALLED.
 
   // Find group boundaries
   std::vector<int> group_starts;
@@ -349,11 +349,11 @@ NumericVector shift_by_group_cpp(NumericVector x, IntegerVector group, int perio
 
   // Process each group
   for (size_t g = 0; g < group_starts.size(); g++) {
-    int start = group_starts[g];
-    int end = group_ends[g];
+    const int start = group_starts[g];
+    const int end = group_ends[g];
 
     for (int i = start; i <= end; i++) {
-      int src_idx = i - periods;  // For lag, periods > 0
+      const int src_idx = i - periods;  // For lag, periods > 0
       if (src_idx >= start && src_idx <= end) {
         result[i] = x[src_idx];
       }
@@ -371,12 +371,12 @@ NumericVector conditional_sum_by_group_cpp(NumericVector x,
                                             Nullable<IntegerVector> group3_ = R_NilValue) {
   // Sum x where condition == 1, grouped by (group1, group2, [group3])
   // Returns vector with group sum for each row
-  int n = x.size();
+  const int n = x.size();
   NumericVector result(n, 0.0);
 
   if (n == 0) return result;
 
-  bool has_group3 = group3_.isNotNull();
+  const bool has_group3 = group3_.isNotNull();
   IntegerVector group3;
   if (has_group3) {
     group3 = group3_.get();
@@ -418,7 +418,7 @@ NumericVector conditional_sum_by_group_cpp(NumericVector x,
 // [[Rcpp::export]]
 NumericVector sum_by_group_cpp(NumericVector x, IntegerVector group) {
   // Simple sum of x by single group column
-  int n = x.size();
+  const int n = x.size();
   NumericVector result(n, 0.0);
 
   if (n == 0) return result;
@@ -445,7 +445,7 @@ NumericVector sum_by_group_cpp(NumericVector x, IntegerVector group) {
 // [[Rcpp::export]]
 NumericVector mean_by_group_cpp(NumericVector x, IntegerVector group) {
   // Mean of x by single group column
-  int n = x.size();
+  const int n = x.size();
   NumericVector result(n, NA_REAL);
 
   if (n == 0) return result;
@@ -485,15 +485,15 @@ List compute_U_Gg_core_cpp(NumericVector diff_y,
                             NumericVector T_g,
                             IntegerVector group,
                             IntegerVector first_obs,
-                            double G_XX,
-                            double N_inc,
-                            int i,
-                            int t_min,
-                            int T_max) {
+                            const double G_XX,
+                            const double N_inc,
+                            const int i,
+                            int t_min, // WHY IS THIS VARIABLE PASSED? IT IS NEVER CALLED.
+                            int T_max) { // WHY IS THIS VARIABLE PASSED? IT IS NEVER CALLED.
   // Core computation of U_Gg variables
   // This is the main hot loop in did_multiplegt_dyn_core
 
-  int n = diff_y.size();
+  const int n = diff_y.size();
   NumericVector U_Gg_temp(n, 0.0);
   NumericVector U_Gg(n, NA_REAL);
   NumericVector count_core(n, 0.0);
@@ -506,7 +506,7 @@ List compute_U_Gg_core_cpp(NumericVector diff_y,
     );
   }
 
-  double G_over_N = G_XX / N_inc;
+  const double G_over_N = G_XX / N_inc;
 
   // Compute U_Gg_temp
   for (int j = 0; j < n; j++) {
@@ -514,19 +514,19 @@ List compute_U_Gg_core_cpp(NumericVector diff_y,
     if (time_XX[j] >= i + 1 && time_XX[j] <= T_g[j]) {
       // Check dummy_U_Gg: i <= T_g - 1
       if (i <= T_g[j] - 1) {
-        double dist = distance_to_switch[j];
-        double n_tg = N_t_g[j];
-        double n_ctrl = N_gt_control[j];
-        double never = never_change[j];
-        double ngt = N_gt[j];
-        double dy = diff_y[j];
+        const double dist = distance_to_switch[j];
+        const double n_tg = N_t_g[j];
+        const double n_ctrl = N_gt_control[j];
+        const double never = never_change[j];
+        const double ngt = N_gt[j];
+        const double dy = diff_y[j];
 
         if (!NumericVector::is_na(dist) && !NumericVector::is_na(n_tg) &&
             !NumericVector::is_na(n_ctrl) && n_ctrl != 0 &&
             !NumericVector::is_na(never) && !NumericVector::is_na(ngt) &&
             !NumericVector::is_na(dy)) {
 
-          double bracket = dist - (n_tg / n_ctrl) * never;
+          const double bracket = dist - (n_tg / n_ctrl) * never;
           U_Gg_temp[j] = G_over_N * ngt * bracket * dy;
         }
       }
@@ -544,21 +544,21 @@ List compute_U_Gg_core_cpp(NumericVector diff_y,
   // Assign group sums and multiply by first_obs
   for (int j = 0; j < n; j++) {
     if (!IntegerVector::is_na(group[j])) {
-      double sum_val = group_sums[group[j]];
+      const double sum_val = group_sums[group[j]];
       U_Gg[j] = sum_val * first_obs[j];
     }
   }
 
   // Compute count_core
   for (int j = 0; j < n; j++) {
-    double temp = U_Gg_temp[j];
-    double dy = diff_y[j];
-    double dist = distance_to_switch[j];
-    double n_tg = N_t_g[j];
-    double never = never_change[j];
+    const double temp = U_Gg_temp[j];
+    const double dy = diff_y[j];
+    const double dist = distance_to_switch[j];
+    const double n_tg = N_t_g[j];
+    const double never = never_change[j];
 
-    bool cond1 = !NumericVector::is_na(temp) && temp != 0;
-    bool cond2 = temp == 0 && !NumericVector::is_na(dy) && dy == 0 &&
+    const bool cond1 = !NumericVector::is_na(temp) && temp != 0;
+    const bool cond2 = temp == 0 && !NumericVector::is_na(dy) && dy == 0 &&
                  ((!NumericVector::is_na(dist) && dist != 0) ||
                   (!NumericVector::is_na(n_tg) && n_tg != 0 &&
                    !NumericVector::is_na(never) && never != 0));
@@ -586,9 +586,9 @@ NumericVector compute_U_Gg_var_temp_cpp(NumericVector diff_y,
                                          NumericVector N_gt,
                                          IntegerVector time_XX,
                                          NumericVector T_g,
-                                         double G_XX,
-                                         double N_inc,
-                                         int i) {
+                                         const double G_XX,
+                                         const double N_inc,
+                                         const int i) {
   // Compute U_Gg_var_temp for variance estimation
 
   int n = diff_y.size();
@@ -596,19 +596,19 @@ NumericVector compute_U_Gg_var_temp_cpp(NumericVector diff_y,
 
   if (N_inc == 0) return result;
 
-  double G_over_N = G_XX / N_inc;
+  const double G_over_N = G_XX / N_inc;
 
   for (int j = 0; j < n; j++) {
     // Check time window and dummy condition
     if (time_XX[j] >= i + 1 && time_XX[j] <= T_g[j] && i <= T_g[j] - 1) {
-      double dist = distance_to_switch[j];
-      double n_tg = N_t_g[j];
-      double n_ctrl = N_gt_control[j];
-      double never = never_change[j];
-      double ngt = N_gt[j];
-      double dy = diff_y[j];
-      double e_hat = E_hat_gt[j];
-      double dof = DOF_gt[j];
+      const double dist = distance_to_switch[j];
+      const double n_tg = N_t_g[j];
+      const double n_ctrl = N_gt_control[j];
+      const double never = never_change[j];
+      const double ngt = N_gt[j];
+      const double dy = diff_y[j];
+      const double e_hat = E_hat_gt[j];
+      const double dof = DOF_gt[j];
 
       if (!NumericVector::is_na(dist) && !NumericVector::is_na(n_tg) &&
           !NumericVector::is_na(n_ctrl) && n_ctrl != 0 &&
@@ -616,7 +616,7 @@ NumericVector compute_U_Gg_var_temp_cpp(NumericVector diff_y,
           !NumericVector::is_na(dy) && !NumericVector::is_na(e_hat) &&
           !NumericVector::is_na(dof)) {
 
-        double bracket = dist - (n_tg / n_ctrl) * never;
+        const double bracket = dist - (n_tg / n_ctrl) * never;
         result[j] = G_over_N * bracket * ngt * dof * (dy - e_hat);
       }
     }
@@ -630,28 +630,28 @@ IntegerVector compute_dof_indicator_cpp(NumericVector N_gt,
                                          NumericVector diff_y,
                                          NumericVector never_change,
                                          NumericVector N_t,
-                                         int indicator_type) {
+                                         const int indicator_type) {
   // Compute DOF indicator columns
   // indicator_type: 1 = dof_ns (non-switchers), 2 = dof_s (switchers)
 
-  int n = N_gt.size();
+  const int n = N_gt.size();
   IntegerVector result(n, 0);
 
   for (int j = 0; j < n; j++) {
-    bool ngt_valid = !NumericVector::is_na(N_gt[j]) && N_gt[j] != 0;
-    bool diff_valid = !NumericVector::is_na(diff_y[j]);
+    const bool ngt_valid = !NumericVector::is_na(N_gt[j]) && N_gt[j] != 0;
+    const bool diff_valid = !NumericVector::is_na(diff_y[j]);
 
     if (indicator_type == 1) {
       // dof_ns: N_gt != 0, diff_y not NA, never_change == 1, N_t > 0
-      bool never_valid = !NumericVector::is_na(never_change[j]) && never_change[j] == 1;
-      bool nt_valid = !NumericVector::is_na(N_t[j]) && N_t[j] > 0;
+      const bool never_valid = !NumericVector::is_na(never_change[j]) && never_change[j] == 1;
+      const bool nt_valid = !NumericVector::is_na(N_t[j]) && N_t[j] > 0;
 
       if (ngt_valid && diff_valid && never_valid && nt_valid) {
         result[j] = 1;
       }
     } else {
       // dof_s: N_gt != 0, never_change == 1 (distance_to_switch in this case)
-      bool dist_valid = !NumericVector::is_na(never_change[j]) && never_change[j] == 1;
+      const bool dist_valid = !NumericVector::is_na(never_change[j]) && never_change[j] == 1;
 
       if (ngt_valid && dist_valid) {
         result[j] = 1;
@@ -672,12 +672,12 @@ NumericVector compute_cohort_mean_cpp(NumericVector values,
   // Compute weighted mean within cohorts where dof_indicator == 1
   // mean = sum(values * weights) / sum(weights) by groups
 
-  int n = values.size();
+  const int n = values.size();
   NumericVector result(n, NA_REAL);
 
   if (n == 0) return result;
 
-  bool has_group3 = group3_.isNotNull();
+  const bool has_group3 = group3_.isNotNull();
   IntegerVector group3;
   if (has_group3) {
     group3 = group3_.get();
@@ -696,8 +696,8 @@ NumericVector compute_cohort_mean_cpp(NumericVector values,
         key = ((long long)group1[i] << 32) | group2[i];
       }
 
-      double val = values[i];
-      double wt = weights[i];
+      const double val = values[i];
+      const double wt = weights[i];
 
       if (!NumericVector::is_na(val) && !NumericVector::is_na(wt)) {
         sum_values[key] += val * wt;
@@ -732,18 +732,18 @@ IntegerVector count_unique_by_group_cpp(IntegerVector values,
                                          Nullable<IntegerVector> group3_ = R_NilValue) {
   // Count unique values within groups where dof_indicator == 1
 
-  int n = values.size();
+  const int n = values.size();
   IntegerVector result(n, NA_INTEGER);
 
   if (n == 0) return result;
 
-  bool has_group3 = group3_.isNotNull();
+  const bool has_group3 = group3_.isNotNull();
   IntegerVector group3;
   if (has_group3) {
     group3 = group3_.get();
   }
 
-  std::unordered_map<long long, std::set<int>> unique_values;
+  std::unordered_map<long long, std::set<int>> unique_values; // THE SET COULD BE AN UNORDERED SET
 
   // First pass: collect unique values
   for (int i = 0; i < n; i++) {
@@ -788,15 +788,15 @@ List compute_all_effects_cpp(NumericMatrix U_Gg_plus,
                               NumericVector N1_vec,
                               NumericVector N0_vec,
                               IntegerVector first_obs_by_gp,
-                              double G_XX,
-                              int l_XX) {
+                              const double G_XX,
+                              const int l_XX) {
   // Compute all DID_l effects in one pass
   // U_Gg_plus/minus: n x l_XX matrices of U_Gg values for switchers in/out
   // count_plus/minus: n x l_XX matrices of count values
   // N1_vec/N0_vec: weights for each effect (length l_XX)
   // Returns: DID estimates, counts, and U_Gg_global for each effect
 
-  int n = U_Gg_plus.nrow();
+  const int n = U_Gg_plus.nrow();
   NumericMatrix U_Gg_global(n, l_XX);
   NumericMatrix count_global(n, l_XX);
   NumericVector DID_estimates(l_XX);
@@ -804,9 +804,9 @@ List compute_all_effects_cpp(NumericMatrix U_Gg_plus,
   NumericVector N_effects(l_XX);
 
   for (int i = 0; i < l_XX; i++) {
-    double N1 = N1_vec[i];
-    double N0 = N0_vec[i];
-    double total_N = N1 + N0;
+    const double N1 = N1_vec[i];
+    const double N0 = N0_vec[i];
+    const double total_N = N1 + N0;
     N_switchers[i] = total_N;
 
     if (total_N == 0) {
@@ -814,16 +814,16 @@ List compute_all_effects_cpp(NumericMatrix U_Gg_plus,
       continue;
     }
 
-    double w_plus = N1 / total_N;
-    double w_minus = N0 / total_N;
+    const double w_plus = N1 / total_N;
+    const double w_minus = N0 / total_N;
 
     double sum_U_Gg = 0.0;
     double sum_count = 0.0;
 
     for (int j = 0; j < n; j++) {
       // Compute U_Gg_global
-      double u_plus = U_Gg_plus(j, i);
-      double u_minus = U_Gg_minus(j, i);
+      const double u_plus = U_Gg_plus(j, i);
+      const double u_minus = U_Gg_minus(j, i);
       double u_global = 0.0;
 
       if (!NumericVector::is_na(u_plus) && !NumericVector::is_na(u_minus)) {
@@ -845,8 +845,8 @@ List compute_all_effects_cpp(NumericMatrix U_Gg_plus,
       }
 
       // Compute count_global (max of plus and minus)
-      double c_plus = count_plus(j, i);
-      double c_minus = count_minus(j, i);
+      const double c_plus = count_plus(j, i);
+      const double c_minus = count_minus(j, i);
       double c_global = NA_REAL;
 
       if (!NumericVector::is_na(c_plus) && !NumericVector::is_na(c_minus)) {
@@ -884,33 +884,33 @@ List compute_all_variances_cpp(NumericMatrix U_Gg_var_in,
                                 IntegerVector first_obs_by_gp,
                                 IntegerVector first_obs_by_clust,
                                 IntegerVector cluster_XX,
-                                double G_XX,
-                                int l_XX,
-                                bool clustered) {
+                                const double G_XX,
+                                const int l_XX,
+                                const bool clustered) {
   // Compute all variances in one pass
   // Returns: SE estimates and U_Gg_var_glob for each effect
 
-  int n = U_Gg_var_in.nrow();
+  const int n = U_Gg_var_in.nrow();
   NumericMatrix U_Gg_var_glob(n, l_XX);
   NumericVector SE_estimates(l_XX);
 
   for (int i = 0; i < l_XX; i++) {
-    double N1 = N1_vec[i];
-    double N0 = N0_vec[i];
-    double total_N = N1 + N0;
+    const double N1 = N1_vec[i];
+    const double N0 = N0_vec[i];
+    const double total_N = N1 + N0;
 
     if (total_N == 0) {
       SE_estimates[i] = NA_REAL;
       continue;
     }
 
-    double w_plus = N1 / total_N;
-    double w_minus = N0 / total_N;
+    const double w_plus = N1 / total_N;
+    const double w_minus = N0 / total_N;
 
     // Compute U_Gg_var_glob
     for (int j = 0; j < n; j++) {
-      double v_in = U_Gg_var_in(j, i);
-      double v_out = U_Gg_var_out(j, i);
+      const double v_in = U_Gg_var_in(j, i);
+      const double v_out = U_Gg_var_out(j, i);
 
       double v_glob = 0.0;
       if (!NumericVector::is_na(v_in)) {
@@ -929,7 +929,7 @@ List compute_all_variances_cpp(NumericMatrix U_Gg_var_in,
       // Non-clustered case
       for (int j = 0; j < n; j++) {
         if (first_obs_by_gp[j] == 1) {
-          double val = U_Gg_var_glob(j, i);
+          const double val = U_Gg_var_glob(j, i);
           if (!NumericVector::is_na(val)) {
             sum_sq += val * val;
           }
@@ -955,9 +955,9 @@ List compute_all_variances_cpp(NumericMatrix U_Gg_var_in,
       std::set<int> counted_clusters;
       for (int j = 0; j < n; j++) {
         if (first_obs_by_clust[j] == 1 && !IntegerVector::is_na(cluster_XX[j])) {
-          int clust = cluster_XX[j];
+          const int clust = cluster_XX[j];
           if (counted_clusters.find(clust) == counted_clusters.end()) {
-            double cs = cluster_sums[clust];
+            const double cs = cluster_sums[clust];
             sum_sq += cs * cs;
             counted_clusters.insert(clust);
           }
@@ -972,7 +972,7 @@ List compute_all_variances_cpp(NumericMatrix U_Gg_var_in,
       }
     }
 
-    double variance = sum_sq / (G_XX * G_XX);
+    const double variance = sum_sq / (G_XX * G_XX);
     SE_estimates[i] = std::sqrt(variance);
   }
 
@@ -995,12 +995,12 @@ List compute_placebo_effects_and_variances_cpp(
     IntegerVector first_obs_by_gp,
     IntegerVector first_obs_by_clust,
     IntegerVector cluster_XX,
-    double G_XX,
-    int l_placebo_XX,
-    bool clustered) {
+    const double G_XX,
+    const int l_placebo_XX,
+    const bool clustered) {
   // Compute all placebo effects and variances in one pass
 
-  int n = U_Gg_pl_plus.nrow();
+  const int n = U_Gg_pl_plus.nrow();
   NumericVector DID_pl_estimates(l_placebo_XX);
   NumericVector SE_pl_estimates(l_placebo_XX);
   NumericVector N_switchers_pl(l_placebo_XX);
@@ -1008,9 +1008,9 @@ List compute_placebo_effects_and_variances_cpp(
   NumericMatrix U_Gg_var_glob_pl(n, l_placebo_XX);
 
   for (int i = 0; i < l_placebo_XX; i++) {
-    double N1 = N1_pl_vec[i];
-    double N0 = N0_pl_vec[i];
-    double total_N = N1 + N0;
+    const double N1 = N1_pl_vec[i];
+    const double N0 = N0_pl_vec[i];
+    const double total_N = N1 + N0;
     N_switchers_pl[i] = total_N;
 
     if (total_N == 0) {
@@ -1019,16 +1019,16 @@ List compute_placebo_effects_and_variances_cpp(
       continue;
     }
 
-    double w_plus = N1 / total_N;
-    double w_minus = N0 / total_N;
+    const double w_plus = N1 / total_N;
+    const double w_minus = N0 / total_N;
 
     // Compute DID placebo estimate
     double sum_U_Gg = 0.0;
     double sum_count = 0.0;
 
     for (int j = 0; j < n; j++) {
-      double u_plus = U_Gg_pl_plus(j, i);
-      double u_minus = U_Gg_pl_minus(j, i);
+      const double u_plus = U_Gg_pl_plus(j, i);
+      const double u_minus = U_Gg_pl_minus(j, i);
       double u_global = 0.0;
 
       if (!NumericVector::is_na(u_plus) && !NumericVector::is_na(u_minus)) {
@@ -1048,8 +1048,8 @@ List compute_placebo_effects_and_variances_cpp(
       }
 
       // Compute count
-      double c_plus = count_pl_plus(j, i);
-      double c_minus = count_pl_minus(j, i);
+      const double c_plus = count_pl_plus(j, i);
+      const double c_minus = count_pl_minus(j, i);
       double c_global = NA_REAL;
 
       if (!NumericVector::is_na(c_plus) && !NumericVector::is_na(c_minus)) {
@@ -1070,8 +1070,8 @@ List compute_placebo_effects_and_variances_cpp(
 
     // Compute variance
     for (int j = 0; j < n; j++) {
-      double v_in = U_Gg_var_pl_in(j, i);
-      double v_out = U_Gg_var_pl_out(j, i);
+      const double v_in = U_Gg_var_pl_in(j, i);
+      const double v_out = U_Gg_var_pl_out(j, i);
 
       double v_glob = 0.0;
       if (!NumericVector::is_na(v_in)) {
@@ -1088,7 +1088,7 @@ List compute_placebo_effects_and_variances_cpp(
     if (!clustered) {
       for (int j = 0; j < n; j++) {
         if (first_obs_by_gp[j] == 1) {
-          double val = U_Gg_var_glob_pl(j, i);
+          const double val = U_Gg_var_glob_pl(j, i);
           if (!NumericVector::is_na(val)) {
             sum_sq += val * val;
           }
@@ -1110,9 +1110,9 @@ List compute_placebo_effects_and_variances_cpp(
       std::set<int> counted_clusters;
       for (int j = 0; j < n; j++) {
         if (first_obs_by_clust[j] == 1 && !IntegerVector::is_na(cluster_XX[j])) {
-          int clust = cluster_XX[j];
+          const int clust = cluster_XX[j];
           if (counted_clusters.find(clust) == counted_clusters.end()) {
-            double cs = cluster_sums[clust];
+            const double cs = cluster_sums[clust];
             sum_sq += cs * cs;
             counted_clusters.insert(clust);
           }
@@ -1126,7 +1126,7 @@ List compute_placebo_effects_and_variances_cpp(
       }
     }
 
-    double variance = sum_sq / (G_XX * G_XX);
+    const double variance = sum_sq / (G_XX * G_XX);
     SE_pl_estimates[i] = std::sqrt(variance);
   }
 
@@ -1143,17 +1143,17 @@ List compute_placebo_effects_and_variances_cpp(
 NumericMatrix compute_vcov_full_cpp(NumericMatrix U_Gg_var_glob,
                                      IntegerVector first_obs,
                                      NumericVector se_vec,
-                                     bool normalized,
+                                     const bool normalized,
                                      Nullable<NumericVector> delta_D_global_ = R_NilValue,
-                                     double G_XX = 1.0) {
+                                     const double G_XX = 1.0) {
   // Compute full variance-covariance matrix efficiently
-  int l_XX = U_Gg_var_glob.ncol();
-  int n = U_Gg_var_glob.nrow();
+  const int l_XX = U_Gg_var_glob.ncol();
+  const int n = U_Gg_var_glob.nrow();
   NumericMatrix vcov(l_XX, l_XX);
-  double G_XX_sq = G_XX * G_XX;
+  const double G_XX_sq = G_XX * G_XX;
 
   NumericVector delta_D_global;
-  bool has_delta = delta_D_global_.isNotNull();
+  const bool has_delta = delta_D_global_.isNotNull();
   if (has_delta) {
     delta_D_global = delta_D_global_.get();
   }
@@ -1183,14 +1183,14 @@ NumericMatrix compute_vcov_full_cpp(NumericMatrix U_Gg_var_glob,
           }
 
           if (!NumericVector::is_na(val_i) && !NumericVector::is_na(val_k)) {
-            double combined = val_i + val_k;
+            const double combined = val_i + val_k;
             sum_sq += combined * combined;
           }
         }
       }
 
-      double var_sum = sum_sq / G_XX_sq;
-      double cov = (var_sum - vcov(i, i) - vcov(k, k)) / 2.0;
+      const double var_sum = sum_sq / G_XX_sq;
+      const double cov = (var_sum - vcov(i, i) - vcov(k, k)) / 2.0;
       vcov(i, k) = cov;
       vcov(k, i) = cov;
     }
@@ -1207,11 +1207,11 @@ List compute_avg_effect_cpp(NumericVector U_Gg_plus,
                              IntegerVector first_obs_by_gp,
                              IntegerVector first_obs_by_clust,
                              IntegerVector cluster_XX,
-                             double w_plus,
-                             double G_XX,
-                             bool clustered) {
+                             const double w_plus,
+                             const double G_XX,
+                             const bool clustered) {
   // Compute average total effect and its variance
-  int n = U_Gg_plus.size();
+  const int n = U_Gg_plus.size();
 
   // Compute U_Gg_global
   NumericVector U_Gg_global(n);
@@ -1229,7 +1229,7 @@ List compute_avg_effect_cpp(NumericVector U_Gg_plus,
     }
   }
 
-  double delta_XX = sum_U_Gg / G_XX;
+  const double delta_XX = sum_U_Gg / G_XX;
 
   // Compute variance
   NumericVector U_Gg_var_global(n);
@@ -1242,7 +1242,7 @@ List compute_avg_effect_cpp(NumericVector U_Gg_plus,
   if (!clustered) {
     for (int j = 0; j < n; j++) {
       if (first_obs_by_gp[j] == 1) {
-        double val = U_Gg_var_global[j];
+        const double val = U_Gg_var_global[j];
         if (!NumericVector::is_na(val)) {
           sum_sq += val * val;
         }
@@ -1264,9 +1264,9 @@ List compute_avg_effect_cpp(NumericVector U_Gg_plus,
     std::set<int> counted;
     for (int j = 0; j < n; j++) {
       if (first_obs_by_clust[j] == 1 && !IntegerVector::is_na(cluster_XX[j])) {
-        int clust = cluster_XX[j];
+        const int clust = cluster_XX[j];
         if (counted.find(clust) == counted.end()) {
-          double cs = cluster_sums[clust];
+          const double cs = cluster_sums[clust];
           sum_sq += cs * cs;
           counted.insert(clust);
         }
@@ -1274,8 +1274,8 @@ List compute_avg_effect_cpp(NumericVector U_Gg_plus,
     }
   }
 
-  double variance = sum_sq / (G_XX * G_XX);
-  double se_XX = std::sqrt(variance);
+  const double variance = sum_sq / (G_XX * G_XX);
+  const double se_XX = std::sqrt(variance);
 
   return List::create(
     Named("delta_XX") = delta_XX,
@@ -1292,13 +1292,13 @@ List same_switchers_loop_cpp(NumericVector outcome,
                               NumericVector F_g,
                               NumericVector N_gt,
                               IntegerVector d_sq,
-                              int effects,
-                              int T_max,
-                              bool only_never_switchers) {
+                              const int effects,
+                              const int T_max,
+                              const bool only_never_switchers) {
   // Optimized same_switchers loop
   // Returns N_g_control_check_XX for each group
 
-  int n = outcome.size();
+  const int n = outcome.size();
   NumericVector N_g_control_check(n, 0.0);
 
   // Pre-sort indices by group for efficient lookup
@@ -1313,8 +1313,8 @@ List same_switchers_loop_cpp(NumericVector outcome,
     for (auto& kv : group_indices) {
       std::vector<int>& indices = kv.second;
       for (size_t j = q; j < indices.size(); j++) {
-        int idx = indices[j];
-        int lag_idx = indices[j - q];
+        const int idx = indices[j];
+        const int lag_idx = indices[j - q];
         if (!NumericVector::is_na(outcome[idx]) && !NumericVector::is_na(outcome[lag_idx])) {
           diff_y_last[idx] = outcome[idx] - outcome[lag_idx];
         }
@@ -1336,14 +1336,14 @@ List same_switchers_loop_cpp(NumericVector outcome,
     std::map<std::pair<int, int>, double> control_sums;
     for (int i = 0; i < n; i++) {
       if (!NumericVector::is_na(never_change_last[i]) && !NumericVector::is_na(N_gt[i])) {
-        auto key = std::make_pair(time[i], d_sq[i]);
+        const auto key = std::make_pair(time[i], d_sq[i]);
         control_sums[key] += never_change_last[i] * N_gt[i];
       }
     }
 
     NumericVector N_gt_control_last(n, 0.0);
     for (int i = 0; i < n; i++) {
-      auto key = std::make_pair(time[i], d_sq[i]);
+      const auto key = std::make_pair(time[i], d_sq[i]);
       auto it = control_sums.find(key);
       if (it != control_sums.end()) {
         N_gt_control_last[i] = it->second;
@@ -1407,7 +1407,7 @@ List bootstrap_prepare_groups_cpp(IntegerVector group) {
   // Pre-compute group structure for fast repeated bootstrap sampling
   // Returns: list with group_ids, group_starts, group_sizes, and row_indices per group
 
-  int n = group.size();
+  const int n = group.size();
 
   // Find unique groups and their positions
   std::map<int, std::vector<int>> group_indices;
@@ -1417,12 +1417,12 @@ List bootstrap_prepare_groups_cpp(IntegerVector group) {
     }
   }
 
-  int n_groups = group_indices.size();
+  const int n_groups = group_indices.size();
   IntegerVector group_ids(n_groups);
   IntegerVector group_sizes(n_groups);
   List row_indices(n_groups);
 
-  int idx = 0;
+  const int idx = 0;
   for (auto& kv : group_indices) {
     group_ids[idx] = kv.first;
     group_sizes[idx] = kv.second.size();
@@ -1447,8 +1447,8 @@ IntegerVector bootstrap_sample_indices_cpp(List group_info) {
 
   IntegerVector group_sizes = group_info["group_sizes"];
   List row_indices = group_info["row_indices"];
-  int n_groups = group_info["n_groups"];
-  int n_rows = group_info["n_rows"];
+  const int n_groups = group_info["n_groups"];
+  const int n_rows = group_info["n_rows"];
 
   // Sample groups with replacement using R's RNG
   std::vector<int> result;
@@ -1475,8 +1475,8 @@ NumericVector bootstrap_compute_sd_cpp(NumericMatrix results) {
   // Input: B x n_effects matrix where each row is a bootstrap iteration
   // Output: vector of SDs (one per column/effect)
 
-  int n_bootstrap = results.nrow();
-  int n_effects = results.ncol();
+  const int n_bootstrap = results.nrow();
+  const int n_effects = results.ncol();
 
   NumericVector sd_results(n_effects);
 
@@ -1508,7 +1508,7 @@ NumericVector bootstrap_compute_sd_cpp(NumericMatrix results) {
 }
 
 // [[Rcpp::export]]
-NumericMatrix bootstrap_extract_results_cpp(List results_list, int n_bootstrap, int n_effects) {
+NumericMatrix bootstrap_extract_results_cpp(List results_list, const int n_bootstrap, const int n_effects) {
   // Extract effect estimates from a list of result objects into a matrix
   // Handles variable-length results gracefully
 
@@ -1520,7 +1520,7 @@ NumericMatrix bootstrap_extract_results_cpp(List results_list, int n_bootstrap, 
       SEXP item = results_list[i];
       if (!Rf_isNull(item) && Rf_isNumeric(item)) {
         NumericVector effects = as<NumericVector>(item);
-        int n_copy = std::min((int)effects.size(), n_effects);
+        const int n_copy = std::min((int)effects.size(), n_effects);
         for (int j = 0; j < n_copy; j++) {
           result_matrix(i, j) = effects[j];
         }
@@ -1534,17 +1534,17 @@ NumericMatrix bootstrap_extract_results_cpp(List results_list, int n_bootstrap, 
 // [[Rcpp::export]]
 List bootstrap_compute_ci_cpp(NumericVector estimates,
                                NumericVector sd_vec,
-                               double ci_level) {
+                               const double ci_level) {
   // Compute confidence intervals from estimates and SDs
   // ci_level should be between 0 and 1 (e.g., 0.95 for 95% CI)
 
-  int n = estimates.size();
+  const int n = estimates.size();
   NumericVector lb(n);
   NumericVector ub(n);
 
   // Compute z-value for CI
-  double alpha = 1.0 - ci_level;
-  double z = R::qnorm(1.0 - alpha/2.0, 0.0, 1.0, 1, 0);
+  const double alpha = 1.0 - ci_level;
+  const double z = R::qnorm(1.0 - alpha/2.0, 0.0, 1.0, 1, 0);
 
   for (int i = 0; i < n; i++) {
     if (!NumericVector::is_na(estimates[i]) && !NumericVector::is_na(sd_vec[i])) {
