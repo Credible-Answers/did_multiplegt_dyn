@@ -3,7 +3,7 @@
 
 
 # did_multiplegt_dyn
-Estimation in Difference-in-Difference (DID) designs with multiple groups and periods.
+Estimation in staggered first switch designs, where groups experience their first treatment change at different points in time.
 
 [Short description](#Short-description) | [Vignettes](#vignettes) | [Setup](#Setup) | [Syntax](#Syntax) | [Description](#Description)
 
