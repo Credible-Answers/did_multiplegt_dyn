@@ -40,7 +40,8 @@ did_multiplegt_dyn(
   bootstrap = NULL,
   dont_drop_larger_lower = FALSE,
   drop_if_d_miss_before_first_switch = FALSE,
-  ggplot_args = NULL
+  ggplot_args = NULL,
+  parallel = FALSE
 )
 }
 \arguments{
@@ -115,6 +116,8 @@ did_multiplegt_dyn(
 \item{drop_if_d_miss_before_first_switch}{(logical) This option is relevant when the treatment of some groups is missing at some time periods. Then, the command imputes some of those missing treatments. Those imputations are detailed in Appendix A of de Chaisemartin et al (2024). In designs where groups' treatments can change at most once, all those imputations are justified by the design. In other designs, some of those imputations may be liberal. \code{drop_if_d_miss_before_first_switch} can be used to overrule the potentially liberal imputations that are not innocuous for the non-normalized event-study estimators. See Appendix A of de Chaisemartin et al (2024) for further details.}
 
 \item{ggplot_args}{(list) This option allows you to enter additional ggplot features to the event-study graph produced by the command. Enter all your arguments in the list, as you would list them with a + in general. For instance, you can modify legends by using \code{ggplot_args = list(labs(…))}. More pervasive changes can be done by directly interacting with the ggplot object stored in the \code{$plot} sub-list of the assigned \code{did_multiplegt_dyn} object.}
+
+\item{parallel}{(logical or integer) when this option is specified, the command performs parallel computation using the \code{mirai} package. When set to \code{TRUE}, the number of workers is automatically determined based on available CPU cores. When set to a positive integer, that many workers are used. Parallelization speeds up the \code{by}, \code{by_path}, and \code{bootstrap} options. Requires the \code{mirai} package to be installed.}
 }
 \value{
 A list of class did_multiplegt_dyn containing the arguments used, the results for the estimation requested and a ggplot object with the event-study graph. If the by option is specified, the did_multiplegt_dyn object will contain the arguments, a list with the levels of the by option, a sublist for each of these levels with the results and ggplot objects from these by-estimations and a ggplot object for the combined event-study graph. The class did_multiplegt_dyn is assigned to enable customized print and summary methods.

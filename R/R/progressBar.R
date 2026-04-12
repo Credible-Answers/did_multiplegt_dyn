@@ -8,10 +8,10 @@ progressBar <- function(
     tot
     ) {
     cat(".")
-    if (int %% 5 == 0) {
+    if (int %% 5L == 0L) {
         cat(sprintf("%.0f", int))
     }
-    if (int %% 70 == 0) {
+    if (int %% 70L == 0L) {
         cat("\n")
     }
     if (int == tot) {

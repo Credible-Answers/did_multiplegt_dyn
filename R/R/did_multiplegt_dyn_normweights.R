@@ -4,7 +4,6 @@
 #' @param normopt normopt
 #' @param same_switchers same_switchers
 #' @param continuous continuous
-#' @note polars is suggested for better performance
 #' @returns A matrix with the normalized_weights option output.
 #' @noRd
 did_multiplegt_dyn_normweights <- function(
@@ -14,20 +13,10 @@ did_multiplegt_dyn_normweights <- function(
   same_switchers,
   continuous
   ) {
-    # Inherited Globals #
-    df <- data$df
-    # Convert polars DataFrame or data.table to R data.frame for base R operations
-    if (inherits(df, "polars_data_frame") || inherits(df, "data.table")) {
-      df <- as.data.frame(df)
-    }
-    l_XX <- data$l_XX
-    for (v in names(data$delta)) {
-      assign(v, data$delta[[v]])
-    }
-
-    group_XX <- NULL
-
-  suppressWarnings({
+  # Inherited Globals #
+  df <- data.table::copy(data$df)
+  l_XX <- data$l_XX
+  list2env(data$delta, envir = environment())
 
 	## Set up the matrix for the output table
   weight_mat <- matrix(NA, nrow = l_XX, ncol = l_XX) 
@@ -36,46 +25,43 @@ did_multiplegt_dyn_normweights <- function(
   for (i in 1:l_XX) {
     coln <- c(coln, paste0("\U2113","=",i))
     
-    df[[paste0("N_gt_",i,"_temp_XX")]] <- ifelse(
-      df$time_XX == df$F_g_XX - 1 + i 
-      & i <= df$L_g_XX
-      & !is.na(df[[paste0("N_gt_control_",i,"_XX")]])
-      & df[[paste0("N_gt_control_",i,"_XX")]] >0
-      & !is.na(df[[paste0("diff_y_",i,"_XX")]]), 
-      df$N_gt_XX, NA)
+    df[, paste0("N_gt_",i,"_temp_XX") := data.table::fifelse(
+      time_XX == F_g_XX - 1L + i 
+      & i <= L_g_XX
+      & !is.na(get(paste0("N_gt_control_",i,"_XX")))
+      & get(paste0("N_gt_control_",i,"_XX")) > 0L
+      & !is.na(get(paste0("diff_y_",i,"_XX"))), 
+      N_gt_XX, NA_real_)]
 
     temp_col <- paste0("N_gt_",i,"_temp_XX")
     target_col <- paste0("N_gt_",i,"_XX")
-    agg_temp <- aggregate(df[[temp_col]], by = list(group_XX = df$group_XX), FUN = mean, na.rm = TRUE)
-    names(agg_temp)[2] <- target_col
-    df <- merge(df, agg_temp, by = "group_XX", all.x = TRUE)
-    df[[paste0("N_gt_",i,"_temp_XX")]] <- NULL
-    for (k in 0:(i-1)) {
+    df[, (target_col) := mean(get(temp_col), na.rm = TRUE), by = group_XX]
+    df[, (temp_col) := NULL]
+    for (k in 0:(i - 1L)) {
 
 			# Visualization by k
-      row <- k + 1
+      row <- k + 1L
 
 			## Compute the delta_l_k, if the continuous option is specified the original treatment values are used
+      delta_col <- paste0("delta_",i,"_",k)
       if (is.null(continuous)) {
-        df[[paste0("delta_",i,"_",k)]] <- ifelse(df$time_XX == df$F_g_XX - 1 + i - k & df$F_g_XX - 1 + i <= df$T_g_XX, abs(df$treatment_XX - df$d_sq_XX), NA)
+        df[, (delta_col) := data.table::fifelse(time_XX == F_g_XX - 1L + i - k & F_g_XX - 1L + i <= T_g_XX, abs(treatment_XX - d_sq_XX), NA_real_)]
       } else {
-        df[[paste0("delta_",i,"_",k)]] <- ifelse(df$time_XX == df$F_g_XX - 1 + i - k & df$F_g_XX - 1 + i <= df$T_g_XX, abs(df$treatment_XX_orig - df$d_sq_XX_orig), NA)
+        df[, (delta_col) := data.table::fifelse(time_XX == F_g_XX - 1L + i - k & F_g_XX - 1L + i <= T_g_XX, abs(treatment_XX_orig - d_sq_XX_orig), NA_real_)]
       }
 
       if (same_switchers == TRUE) {
-        df[[paste0("delta_",i,"_",k)]] <- ifelse(df$F_g_XX - 1 + l_XX > df$T_g_XX, 0, df[[paste0("delta_",i,"_",k)]])        
+        df[, (delta_col) := data.table::fifelse(F_g_XX - 1L + l_XX > T_g_XX, 0, get(delta_col))]
       }
 
-      df[[paste0("delta_",i,"_",k)]] <- df[[paste0("delta_",i,"_",k)]] * df[[paste0("N_gt_",i,"_XX")]]
-      weight_mat[row, i] <- (sum(df[[paste0("delta_",i,"_",k)]], na.rm = TRUE) / get(paste0("delta_D_",i,"_global_XX"))) / data$mat_res_XX[i,ncol(data$mat_res_XX)-1]
+      df[, (delta_col) := get(delta_col) * get(target_col)]
+      weight_mat[row, i] <- (sum(df[[delta_col]], na.rm = TRUE) / get(paste0("delta_D_",i,"_global_XX"))) / data$mat_res_XX[i,ncol(data$mat_res_XX)-1]
     }
-    df[[paste0("N_gt_",i,"_XX")]] <- NULL
+    df[, (target_col) := NULL]
   }
 
 	## Generating the row names 
-  for (j in 1:l_XX) {
-    rown <- c(rown, paste0("k=",j-1))
-  }     
+  rown <- paste0("k=", 0:(l_XX - 1L))
 
 	## Fill the values for the displayed table
   mat_total <- weight_mat
@@ -84,9 +70,7 @@ did_multiplegt_dyn_normweights <- function(
   weight_mat <- rbind(weight_mat, total)
   rownames(weight_mat) <- c(rown, "Total")
   colnames(weight_mat) <- coln
-  weight_mat[ , ] <- sprintf("%s", format(round(weight_mat[ , ], 3), big.mark=",", scientific=FALSE, trim=TRUE))
+  weight_mat[ , ] <- sprintf("%s", format(round(weight_mat[ , ], 3L), big.mark=",", scientific=FALSE, trim=TRUE))
 
   return(list(norm_weight_mat = noquote(weight_mat)))
-  })
-
 }

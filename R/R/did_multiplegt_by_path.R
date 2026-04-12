@@ -26,7 +26,6 @@
 #' @param less_conservative_se less_conservative_se
 #' @param continuous continuous
 #' @returns A dataframe with the by_path classifier
-#' @note polars is suggested for better performance
 #' @noRd
 
 did_multiplegt_by_path <- function(
@@ -62,10 +61,10 @@ did_multiplegt_by_path <- function(
 
     design_base <- did_multiplegt_dyn_design(data = data, design_opt = list(1, "console"), weight = weight, by = NULL, by_index = "_no_by", file = NULL)
 
-    path_index <- as.data.frame(data$df)
+    path_index <- data$df[, .(group, time, time_XX, treatment_XX, F_g_XX)]
     l_XX <- data$l_XX
     T_max_XX <- data$T_max_XX
-    path_index <- path_index[, c("group", "time", "time_XX", "treatment_XX", "F_g_XX")]
+    path_index <- path_index[!is.na(F_g_XX) & F_g_XX != T_max_XX + 1L]
 
     data <- NULL
     if (by_path == -1) {
@@ -73,58 +72,41 @@ did_multiplegt_by_path <- function(
     }
     design_set <- matrix(design_base$design_mat[1:min(by_path, nrow(design_base$design_mat)), ], ncol = ncol(design_base$design_mat), nrow = min(by_path, nrow(design_base$design_mat)))
     if (by_path > nrow(design_base$design_mat)) {
-        message(sprintf("You requested %.0f treatment paths, but there are only %.0f paths in your data. The program will continue with the latter number of treatment paths."))
+        message(sprintf("You requested %.0f treatment paths, but there are only %.0f paths in your data. The program will continue with the latter number of treatment paths.", by_path, nrow(design_base$design_mat)))
     }
-    path <- design_set[,3]
+    path <- design_set[,3L]
     for (j in 1:l_XX) {
-        path <- paste0(path,",",design_set[,3+j])
+        path <- paste0(path,",",design_set[,3L+j])
     }
     
-    for (i in 0:l_XX) {
-        path_index[[paste0("D_Fg",i)]] <- ifelse(path_index$time_XX == path_index$F_g_XX - 1 + i, path_index$treatment_XX, NA)
-    }
-    path_index$treatment_XX <- NULL
-    for (j in 0:l_XX) {
-        source_col <- paste0("D_Fg", j)
+    cols_DFg <- paste0("D_Fg", 0:l_XX)
+    lapply(0:l_XX, function(i) {
+        col <- cols_DFg[i + 1L]
+        path_index[, (col) := data.table::fifelse(time_XX == F_g_XX - 1L + i, treatment_XX, NA_real_)]
+    })
+    path_index[, treatment_XX := NULL]
+    lapply(0:l_XX, function(j) {
+        source_col <- cols_DFg[j + 1L]
         target_col <- paste0("D_fg", j)
-        agg_dfg <- aggregate(path_index[[source_col]], by = list(group = path_index$group), FUN = mean, na.rm = TRUE)
-        names(agg_dfg)[2] <- target_col
-        path_index <- merge(path_index, agg_dfg, by = "group", all.x = TRUE)
-    }
+        path_index[, (target_col) := mean(get(source_col), na.rm = TRUE), by = "group"]
+    })
 
-    for (j in 0:l_XX) {
-        path_index[[paste0("D_Fg",j)]] <- NULL
-    }
+    path_index[, paste0("D_Fg", 0:l_XX) := NULL]
 
-    path_index$path <- path_index$D_fg0
-    path_index$D_fg0 <- NULL
+    path_index[, path := as.character(D_fg0)]
+    path_index[, D_fg0 := NULL]
     for (j in 1:l_XX) {
-        path_index$path <- ifelse(!is.na(path_index[[paste0("D_fg",j)]]), paste0(path_index$path,",",path_index[[paste0("D_fg",j)]]), path_index$path)
-        path_index[[paste0("D_fg",j)]] <- NULL
+        col <- paste0("D_fg", j)
+        path_index[, path := data.table::fifelse(!is.na(get(col)), paste0(path, ",", get(col)), path)]
+        path_index[, (col) := NULL]
     }
-    path_index$yet_to_switch_XX <- as.numeric(path_index$time_XX < path_index$F_g_XX)
-    path_index$time_XX <- path_index$F_g_XX <- NULL
-    path_index$baseline_XX <- substr(path_index$path,1,1)
+    path_index[, yet_to_switch_XX := as.numeric(time_XX < F_g_XX)]
+    path_index[, c("time_XX", "F_g_XX") := NULL]
+    path_index[, baseline_XX := substr(path, 1, 1)]
 
-    names(path_index)[names(path_index) == "group"] <- group
-    names(path_index)[names(path_index) == "time"] <- time
-    names(path_index)[names(path_index) == "path"] <- "path_XX"
+    data.table::setnames(path_index, c("group", "time", "path"), c(group, time, "path_XX"))
     df <- merge(df, path_index, by = c(group, time))
-    df <- df[order(df[[group]], df[[time]]), ]
+    data.table::setorderv(df, c(group, time))
     data <- list(df = df, path = path)
     return(data)
-}
-
-#' Auxiliary function to check if "," is in var
-#' @param str str
-#' @returns bool
-#' @noRd
-count_comma <- function(str) {
-    tot = 0
-    for (k in 1:nchar(str)) {
-        if (substr(str,k,k) == ",") {
-            tot = tot + 1
-        }
-    }
-    return(tot)
 }
