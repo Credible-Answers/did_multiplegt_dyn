@@ -373,6 +373,7 @@ did_multiplegt_dyn <- function(
   ## - if the option is specified, the output takes on as many branches as the levels of the by variable
 
   #### Set up mirai daemons if parallel option is specified ####
+  n_workers <- 0L
   if (!isFALSE(parallel)) {
     if (!requireNamespace("mirai", quietly = TRUE)) {
       stop("Package 'mirai' is required for the parallel option. Install it with install.packages('mirai').")
@@ -389,13 +390,12 @@ did_multiplegt_dyn <- function(
   xlsx_design <- list()
   xlsx_dfs <- list()
 
-  n_mirai <- .mirai_n_daemons()
-  parallel_by <- n_mirai > 0L && length(by_levels) > 1L
+  parallel_by <- n_workers > 0L && length(by_levels) > 1L
 
   if (parallel_by) {
     # ---- Parallel by-loop via mirai ----
     message(sprintf("Parallelizing estimation across %d subgroups using %d mirai daemons...",
-                    length(by_levels), min(n_mirai, length(by_levels))))
+                    length(by_levels), min(n_workers, length(by_levels))))
 
     # Pre-filter data for each by-level
     df_mains <- vector("list", length(by_levels))
@@ -576,7 +576,7 @@ did_multiplegt_dyn <- function(
         } else {
           message(sprintf("\nBootstrap, %.0f reps:", bootstrap))
         }
-        temp_obj$results <- did_multiplegt_bootstrap(df = df_main, outcome = outcome, group =  group, time =  time, treatment = treatment, effects = effects, placebo = placebo, ci_level = ci_level,switchers = switchers, trends_nonparam = trends_nonparam, weight = weight, controls = controls, dont_drop_larger_lower = dont_drop_larger_lower, drop_if_d_miss_before_first_switch = drop_if_d_miss_before_first_switch, cluster = cluster, same_switchers = same_switchers, same_switchers_pl = same_switchers_pl, only_never_switchers = only_never_switchers, effects_equal = FALSE, save_results = NULL, normalized = normalized, predict_het = NULL, trends_lin = trends_lin, less_conservative_se = less_conservative_se, continuous = continuous, bootstrap = bootstrap, bootstrap_seed = bootstrap_seed, base = temp_obj$results)
+        temp_obj$results <- did_multiplegt_bootstrap(df = df_main, outcome = outcome, group =  group, time =  time, treatment = treatment, effects = effects, placebo = placebo, ci_level = ci_level,switchers = switchers, trends_nonparam = trends_nonparam, weight = weight, controls = controls, dont_drop_larger_lower = dont_drop_larger_lower, drop_if_d_miss_before_first_switch = drop_if_d_miss_before_first_switch, cluster = cluster, same_switchers = same_switchers, same_switchers_pl = same_switchers_pl, only_never_switchers = only_never_switchers, effects_equal = FALSE, save_results = NULL, normalized = normalized, predict_het = NULL, trends_lin = trends_lin, less_conservative_se = less_conservative_se, continuous = continuous, bootstrap = bootstrap, bootstrap_seed = bootstrap_seed, base = temp_obj$results, n_workers = n_workers)
       }
 
       if (!is.null(design)) {

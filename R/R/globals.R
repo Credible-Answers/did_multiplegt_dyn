@@ -59,12 +59,3 @@ utils::globalVariables(c(
 # Compute profile name used by this package (avoids overwriting user daemons)
 .mirai_compute <- "DIDmgtDYN"
 
-# Helper to detect active mirai daemons on the package's compute profile
-# Returns the number of active daemons, or 0L if mirai is unavailable
-.mirai_n_daemons <- function() {
-  if (!requireNamespace("mirai", quietly = TRUE)) return(0L)
-  tryCatch({
-    if (!mirai::daemons_set(.compute = .mirai_compute)) return(0L)
-    as.integer(mirai::status(.compute = .mirai_compute)[["daemons"]])
-  }, error = function(e) 0L)
-}

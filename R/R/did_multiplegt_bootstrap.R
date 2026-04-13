@@ -57,7 +57,8 @@ did_multiplegt_bootstrap <- function(
   continuous,
   bootstrap,
   bootstrap_seed = NULL,
-  base
+  base,
+  n_workers = 0L
 ){
 
     ## Set seed if provided
@@ -87,9 +88,7 @@ did_multiplegt_bootstrap <- function(
     group_col <- group
     time_col <- time
 
-    n_daemons <- .mirai_n_daemons()
-
-    if (n_daemons > 0L) {
+    if (n_workers > 0L) {
         # ---- Parallel bootstrap via mirai ----
 
         # Pre-generate all bootstrap sample indices (fast, preserves RNG reproducibility)
@@ -98,7 +97,7 @@ did_multiplegt_bootstrap <- function(
             boot_indices[[j]] <- bootstrap_sample_indices_cpp(group_info) + 1L
         }
 
-        n_workers <- min(n_daemons, bootstrap)
+        n_workers <- min(n_workers, bootstrap)
         chunks <- split(seq_len(bootstrap),
             rep(seq_len(n_workers), length.out = bootstrap))
         message(sprintf("  Using %d mirai workers...", n_workers))
