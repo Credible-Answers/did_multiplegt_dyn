@@ -237,14 +237,13 @@ suppressWarnings({
     agg_cols <- c("treatment", "outcome", trends_nonparam, weight, controls, predict_het_good, "cluster_XX", cluster)
     agg_cols <- unique(agg_cols[agg_cols %chin% names(df)])
 
-    # Build aggregation expression
-    agg_exprs <- lapply(agg_cols, function(col) {
-      call("/", call("sum", call("*", as.name(col), as.name("weight_XX")), na.rm = TRUE),
-                call("sum", as.name("weight_XX"), na.rm = TRUE))
-    })
-    names(agg_exprs) <- agg_cols
-    agg_exprs[["weight_XX"]] <- quote(sum(weight_XX, na.rm = TRUE))
-    df <- df[, c(agg_exprs), by = .(group, time)]
+    # Aggregate using .SDcols + lapply(.SD, ...) to avoid data.table j-expression issues
+    df <- df[, {
+      sw <- sum(weight_XX, na.rm = TRUE)
+      res <- lapply(.SD, function(x) sum(x * weight_XX, na.rm = TRUE) / sw)
+      res[["weight_XX"]] <- sw
+      res
+    }, by = .(group, time), .SDcols = agg_cols]
 
     if (is.null(cluster)) {
       df[, cluster_XX := NULL]

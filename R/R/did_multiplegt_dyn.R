@@ -378,10 +378,10 @@ did_multiplegt_dyn <- function(
     if (!requireNamespace("mirai", quietly = TRUE)) {
       stop("Package 'mirai' is required for the parallel option. Install it with install.packages('mirai').")
     }
-    n_workers <- if (isTRUE(parallel)) {
-      max(2L, parallel::detectCores() - 1L)
+    if (isTRUE(parallel)) {
+      n_workers <- max(c(2L, parallel::detectCores() - 1L), na.rm = TRUE)
     } else {
-      as.integer(parallel)
+      n_workers <- as.integer(parallel)
     }
     mirai::daemons(n_workers, .compute = .mirai_compute)
     on.exit(mirai::daemons(0, .compute = .mirai_compute), add = TRUE)
@@ -458,14 +458,12 @@ did_multiplegt_dyn <- function(
           )
           results <- df_est$did_multiplegt_dyn
           if (do_boot) {
-            suppressMessages({
-              results <- do.call(
-                DIDmultiplegtDYN:::did_multiplegt_bootstrap,
-                c(list(df = df_main, bootstrap = boot_reps,
-                       bootstrap_seed = boot_seed, base = results),
-                  boot_args)
-              )
-            })
+            results <- do.call(
+              DIDmultiplegtDYN:::did_multiplegt_bootstrap,
+              c(list(df = df_main, bootstrap = boot_reps,
+                      bootstrap_seed = boot_seed, base = results),
+                boot_args)
+            )
           }
           list(df_est = df_est, results = results)
         },
@@ -481,8 +479,8 @@ did_multiplegt_dyn <- function(
 
     # Collect results and post-process sequentially
     for (b in seq_along(by_levels)) {
-      worker_res <- tasks[[b]]$data
-      if (!is.list(worker_res) || is.null(worker_res$df_est)) {
+      worker_res <- tasks[[b]][]
+      if (mirai::is_error_value(worker_res) || is.null(worker_res$df_est)) {
         msg <- tryCatch(conditionMessage(worker_res),
           error = function(e) as.character(worker_res))
         stop(sprintf("Estimation failed for subgroup '%s': %s",

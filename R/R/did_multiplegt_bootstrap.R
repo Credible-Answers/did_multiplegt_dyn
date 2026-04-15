@@ -159,8 +159,8 @@ did_multiplegt_bootstrap <- function(
         # Collect and assemble results
         all_results <- list()
         for (k in seq_along(tasks)) {
-            chunk_res <- tasks[[k]]$data
-            if (!is.list(chunk_res)) {
+            chunk_res <- tasks[[k]][]
+            if (mirai::is_error_value(chunk_res)) {
                 msg <- tryCatch(conditionMessage(chunk_res),
                     error = function(e) as.character(chunk_res))
                 stop("Bootstrap worker failed: ", paste(msg, collapse = " "))

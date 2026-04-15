@@ -21,7 +21,7 @@ Author: Anzony Quispe [aut, cre],
   	Clément de Chaisemartin [aut]
 Encoding: UTF-8
 Imports: data.table, MASS, fixest, ggplot2, stats, car, lmtest, sandwich, gridExtra, Rcpp
-Suggests: openxlsx, rnames, cowplot, mirai, parallel
+Suggests: openxlsx, rnames, cowplot, mirai (>= 1.0.0), parallel
 LinkingTo: Rcpp
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
