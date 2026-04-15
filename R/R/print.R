@@ -13,7 +13,7 @@ print.did_multiplegt_dyn <- function(x, ...) {
         by_levels <- x$by_levels
     }
 
-    for (b in 1:length(by_levels)) {
+    for (b in seq_along(by_levels)) {
 
         if (by_levels[b] == "_no_by") {
             ref <- x
@@ -66,7 +66,7 @@ print.did_multiplegt_dyn <- function(x, ...) {
         }
         cat("\n")
 
-        if (ref$results$N_Placebos != 0) {
+        if (ref$results$N_Placebos != 0L) {
             cat(noquote(strrep("-", 70)));cat("\n");
             cat(strrep(" ", 4));cat(" Testing the parallel trends and no anticipation assumptions");cat("\n");
             cat(noquote(strrep("-", 70)));cat("\n");
@@ -166,7 +166,7 @@ print.did_multiplegt_dyn <- function(x, ...) {
                 mat_print(het_mat)
                 cat(sprintf("Test of joint nullity of the estimates : p-value = %.4f\n", pval));cat("\n")
             }
-            if (length(levels(factor(subset(het_ref, het_ref <  0)))) > 0) {
+            if (length(levels(factor(subset(het_ref, het_ref <  0)))) > 0L) {
                 het_pl_ref <- subset(ref$results$predict_het, ref$results$predict_het$effect < 0)
                 het_pl_ref$effect <- - het_pl_ref$effect
                 for (l in levels(factor(het_pl_ref$effect))) {

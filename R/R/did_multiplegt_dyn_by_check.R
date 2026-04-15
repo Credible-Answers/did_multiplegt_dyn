@@ -3,7 +3,6 @@
 #' @param df df
 #' @param group group
 #' @param by by
-#' @note polars is suggested for better performance
 #' @returns A logical value.
 #' @noRd 
 did_multiplegt_dyn_by_check <- function(
@@ -11,10 +10,6 @@ did_multiplegt_dyn_by_check <- function(
     group,
     by
 ) {
-    sd_by <- NULL
-    df <- as.data.frame(df)
-    sd_agg <- aggregate(df[[by]], by = list(grp = df[[group]]), FUN = sd, na.rm = TRUE)
-    names(sd_agg)[2] <- "sd_by"
-    df <- merge(df, sd_agg, by.x = group, by.y = "grp", all.x = TRUE)
-    return(mean(df$sd_by, na.rm = TRUE) == 0)
+    sd_agg <- df[, .(sd_by = stats::sd(get(by), na.rm = TRUE)), by = group]
+    return(mean(sd_agg$sd_by, na.rm = TRUE) == 0)
 }
