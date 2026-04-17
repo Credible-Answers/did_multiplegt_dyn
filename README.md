@@ -3,15 +3,12 @@
 
 
 # did_multiplegt_dyn
-Estimation in staggered first switch designs, where groups experience their first treatment change at different points in time.
+Heterogeneity-robust estimators for **staggered first switch designs**, where groups experience their first treatment change at different points in time. Those are very general designs, where the treatment may be non
+binary and/or non-absorbing (groups may experience several treatment switches).
 
-[Short description](#Short-description) | [Vignettes](#vignettes) | [Setup](#Setup) | [Syntax](#Syntax) | [Description](#Description)
+[Vignettes](#vignettes) | [Setup](#Setup) | [Syntax](#Syntax) | [Description](#Description)
 
 [Options](#Options) | [Example](#Example) | [FAQ](#FAQ) | [References](#References) | [Authors](#Authors)
-
-## Short description
-
-Estimation of event-study Difference-in-Difference (DID) estimators in designs with multiple groups and periods, and with a potentially non-binary treatment that may increase or decrease multiple times.  
 
 ## Vignettes
 
