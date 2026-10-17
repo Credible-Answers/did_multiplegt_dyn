@@ -1,0 +1,324 @@
+[
+  {
+    "name": "binary",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all)",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "binary_in",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) switchers(in)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "binary_out",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) switchers(out)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "binary_same",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) same_switchers same_switchers_pl",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "binary_weighted",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) normalized normalized_weights controls(x1) weight(weight)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "dose_default",
+    "data": "reversal_dose",
+    "options": "effects(4) placebo(2) cluster(cluster)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "dose_cross",
+    "data": "reversal_dose",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) dont_drop_larger_lower",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "binary_missing",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all)",
+    "prep": "replace y = . if mod(id, 17) == 0 & time == 15\ndrop if mod(id, 19) == 0 & time == 20",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "current_plain",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset0",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) reset(0)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_default_cluster",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3)",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "reset_id_cluster",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(id)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_coarse_cluster",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster)",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "reset5",
+    "data": "reversal_all",
+    "options": "effects(4) placebo(2) reset(5) cluster(cluster)",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "reset_noop",
+    "data": "reversal_binary",
+    "options": "effects(10) placebo(3) cluster(cluster) effects_equal(all) reset(8)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_same",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster) same_switchers same_switchers_pl",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "reset_weighted",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster) normalized normalized_weights controls(x1) weight(weight)",
+    "prep": "",
+    "benchmark": false,
+    "timed": true
+  },
+  {
+    "name": "reset_in",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster) switchers(in)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_out",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster) switchers(out)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_dose",
+    "data": "reversal_dose",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster) dont_drop_larger_lower",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_missing",
+    "data": "reversal_binary",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster)",
+    "prep": "replace treatment = . if mod(id, 17) == 0 & time == 15\nreplace y = . if mod(id, 19) == 0 & time == 20",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_avg",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) cluster(cluster) avg_time_periods",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "linear",
+    "data": "small",
+    "options": "effects(3) placebo(2) trends_lin cluster(cluster)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "nonparam",
+    "data": "small",
+    "options": "effects(4) placebo(2) trends_nonparam(stratum) weight(weight)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "double",
+    "data": "small",
+    "options": "effects(4) placebo(2) normalized weight(weight) effects_equal(2,4)",
+    "prep": "set type double",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "continuous",
+    "data": "small",
+    "options": "effects(3) placebo(2) continuous(1)",
+    "prep": "replace treatment = treatment + heterogeneity",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "bootstrap",
+    "data": "small",
+    "options": "effects(2) placebo(1) bootstrap(5,12345) cluster(cluster)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "by",
+    "data": "small",
+    "options": "effects(3) placebo(2) by(subgroup)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "unbalanced",
+    "data": "small",
+    "options": "effects(4) placebo(2) same_switchers same_switchers_pl controls(x1) weight(weight) cluster(cluster)",
+    "prep": "drop if runiform() < 0.12 & time > 1\nreplace y = . if runiform() < 0.04\nreplace treatment = . if runiform() < 0.02",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "granular",
+    "data": "small",
+    "options": "effects(4) placebo(2) more_granular_demeaning",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "collapse",
+    "data": "small",
+    "options": "effects(4) placebo(2) weight(weight) cluster(cluster)",
+    "prep": "expand 2\nreplace y = y + rnormal()/4",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "heterogeneity",
+    "data": "small",
+    "options": "effects(3) placebo(2) predict_het(heterogeneity, 1 2)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "reset_saved",
+    "data": "reversal_all",
+    "options": "effects(3) placebo(2) reset(3) save_sample",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "path",
+    "data": "small",
+    "options": "effects(2) placebo(1) by_path(2)",
+    "prep": "",
+    "benchmark": false,
+    "timed": false
+  },
+  {
+    "name": "large_100k_70",
+    "data": "staggered_100k_70",
+    "options": "effects(12) placebo(6) cluster(cluster)",
+    "prep": "",
+    "benchmark": true,
+    "timed": true
+  },
+  {
+    "name": "large_200k_5",
+    "data": "staggered_200k_5",
+    "options": "effects(12) placebo(6) cluster(cluster)",
+    "prep": "",
+    "benchmark": true,
+    "timed": true
+  },
+  {
+    "name": "large_200k_70",
+    "data": "staggered_200k_70",
+    "options": "effects(12) placebo(6) cluster(cluster)",
+    "prep": "",
+    "benchmark": true,
+    "timed": true
+  },
+  {
+    "name": "large_200k_160",
+    "data": "staggered_200k_160",
+    "options": "effects(12) placebo(6) cluster(cluster)",
+    "prep": "",
+    "benchmark": true,
+    "timed": true
+  },
+  {
+    "name": "stress_1000",
+    "data": "stress_1000",
+    "options": "effects(1) placebo(0) cluster(cluster)",
+    "prep": "",
+    "benchmark": true,
+    "timed": true,
+    "stress_dates": 1000
+  },
+  {
+    "name": "stress_3000",
+    "data": "stress_3000",
+    "options": "effects(1) placebo(0) cluster(cluster)",
+    "prep": "",
+    "benchmark": true,
+    "timed": true,
+    "stress_dates": 3000
+  }
+]
